@@ -35,14 +35,14 @@ export function runtimeLayout(platform = process.platform) {
  * the same table in web/lib/version.ts.
  */
 const EDITIONS = {
-  'macos-arm64': { full: 'Open DeepTutor for MacOS with Apple Silicon', short: 'MacOS (Apple Silicon)' },
-  'macos-x64': { full: 'Open DeepTutor for MacOS with Intel Silicon', short: 'MacOS (Intel)' },
-  'windows-x64': { full: 'Open DeepTutor for Windows', short: 'Windows' },
+  'macos-arm64': { full: 'Kaiwen Crane Tutor for MacOS with Apple Silicon', short: 'MacOS (Apple Silicon)' },
+  'macos-x64': { full: 'Kaiwen Crane Tutor for MacOS with Intel Silicon', short: 'MacOS (Intel)' },
+  'windows-x64': { full: 'Kaiwen Crane Tutor for Windows', short: 'Windows' },
 };
 
 export function edition(platform = process.platform, arch = process.arch) {
   return EDITIONS[targetId(platform, arch)]
-    ?? (platform === 'win32' ? EDITIONS['windows-x64'] : { full: 'Open DeepTutor for MacOS', short: 'MacOS' });
+    ?? (platform === 'win32' ? EDITIONS['windows-x64'] : { full: 'Kaiwen Crane Tutor for MacOS', short: 'MacOS' });
 }
 
 /** The marker the web UI reads from the user agent: OpenDeepTutor/1.7.1 (macOS; arm64). */

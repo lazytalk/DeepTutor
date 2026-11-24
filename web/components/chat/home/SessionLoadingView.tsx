@@ -59,11 +59,11 @@ export default function SessionLoadingView({
       {/* Logo + spinner (or the failure mark) */}
       <div className="flex items-center gap-3">
         <img
-          src="/brand/black-logo.png"
-          alt="DeepTutor"
-          width={32}
-          height={32}
-          className="h-8 w-8 select-none dark:invert"
+          src="/brand/kaiwen-animated.webp"
+          alt="Kaiwen Education"
+          width={395}
+          height={336}
+          className="h-9 w-auto select-none"
           draggable={false}
         />
         {failed ? (

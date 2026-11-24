@@ -10,7 +10,7 @@ import { resolveLanguage, translate } from './i18n.mjs';
 import { WINDOWS, agentMarker, edition, targetId } from './platform.mjs';
 import { killTree } from './processes.mjs';
 
-app.setName('Open DeepTutor');
+app.setName('Kaiwen Crane Tutor');
 if (WINDOWS) app.setAppUserModelId('org.deeptutor.open-desktop');
 const EDITION = edition();
 const sourceDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -335,7 +335,7 @@ function buildMenu() {
     detail: t('aboutDetail', { core: active?.manifest.coreVersion ?? '—', runtime: active?.manifest.runtimeId ?? '—' }),
   }) };
   Menu.setApplicationMenu(Menu.buildFromTemplate([
-    { label: 'Open DeepTutor', submenu: WINDOWS ? [about, { type: 'separator' }, { role: 'quit', label: t('quit') }] : [
+    { label: 'Kaiwen Crane Tutor', submenu: WINDOWS ? [about, { type: 'separator' }, { role: 'quit', label: t('quit') }] : [
       about,
       { type: 'separator' },
       { role: 'hide', label: t('hide') }, { role: 'hideOthers', label: t('hideOthers') }, { role: 'unhide', label: t('showAll') },
@@ -400,7 +400,7 @@ else {
     callback(result.response === 1);
   });
   window = new BrowserWindow({
-    title: 'Open DeepTutor', width: 1360, height: 920, minWidth: 900, minHeight: 620,
+    title: 'Kaiwen Crane Tutor', width: 1360, height: 920, minWidth: 900, minHeight: 620,
     backgroundColor: BACKGROUND[ui.theme],
     ...(WINDOWS ? {} : { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 18, y: 16 } }),
     webPreferences: { preload: path.join(sourceDirectory, 'preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false },
@@ -420,7 +420,7 @@ else {
   void boot();
   }).catch(async error => {
     await logStartupFailure(error);
-    dialog.showErrorBox('Open DeepTutor', error.message);
+    dialog.showErrorBox('Kaiwen Crane Tutor', error.message);
     exitAllowed = true;
     app.quit();
   });

@@ -1,8 +1,8 @@
 const FENCE = "```";
 
-export const CO_WRITER_SAMPLE_TEMPLATE = `# DeepTutor Co-Writer
+export const CO_WRITER_SAMPLE_TEMPLATE = `# Kaiwen Crane Tutor Co-Writer
 
-> DeepTutor's built-in writing canvas for notes, reports, tutorials, and AI-assisted drafts.
+> Kaiwen Crane Tutor's built-in writing canvas for notes, reports, tutorials, and AI-assisted drafts.
 
 ### Features
 
@@ -10,14 +10,14 @@ export const CO_WRITER_SAMPLE_TEMPLATE = `# DeepTutor Co-Writer
 - Real-time preview for headings, tables, code, math, flowchart, and sequence diagrams
 - AI editing workflows for rewrite, shorten, and expand
 - HTML tag decoding for tags like <sub>, <sup>, <abbr>, and <mark>
-- A practical starter draft for DeepTutor product docs and learning content
+- A practical starter draft for Kaiwen Crane Tutor product docs and learning content
 
 ## Headers (Underline)
 
-DeepTutor Learning Note
+Kaiwen Crane Tutor Learning Note
 =============
 
-DeepTutor Study Outline
+Kaiwen Crane Tutor Study Outline
 -------------
 
 ### Characters
@@ -33,25 +33,25 @@ Superscript: X<sup>2</sup>, Subscript: O<sub>2</sub>
 
 **Abbreviation(link HTML abbr tag)**
 
-The <abbr title="Large Language Model">LLM</abbr> layer powers DeepTutor while the <abbr title="Retrieval Augmented Generation">RAG</abbr> layer provides grounded knowledge support.
+The <abbr title="Large Language Model">LLM</abbr> layer powers Kaiwen Crane Tutor while the <abbr title="Retrieval Augmented Generation">RAG</abbr> layer provides grounded knowledge support.
 
 ### Blockquotes
 
-> DeepTutor helps students turn questions into structured understanding.
+> Kaiwen Crane Tutor helps students turn questions into structured understanding.
 >
-> "Learn deeply, write clearly.", [DeepTutor](#deeptutor-co-writer)
+> "Learn deeply, write clearly.", [Kaiwen Crane Tutor](#kaiwen-crane-tutor-co-writer)
 
 ### Links
 
-[DeepTutor Co-Writer](#deeptutor-co-writer "co-writer section")
+[Kaiwen Crane Tutor Co-Writer](#kaiwen-crane-tutor-co-writer "co-writer section")
 
-[DeepTutor Learning Note](#deeptutor-learning-note)
+[Kaiwen Crane Tutor Learning Note](#kaiwen-crane-tutor-learning-note)
 
-[DeepTutor Website](https://deeptutor.info)
+[Kaiwen Crane Tutor Website](https://deeptutor.info)
 
 [Reference link][deeptutor-doc]
 
-[deeptutor-doc]: #deeptutor-learning-note
+[deeptutor-doc]: #kaiwen-crane-tutor-learning-note
 
 ### Code Blocks
 
@@ -63,7 +63,7 @@ The <abbr title="Large Language Model">LLM</abbr> layer powers DeepTutor while t
 
     from deeptutor.runtime.orchestrator import ChatOrchestrator
     orchestrator = ChatOrchestrator()
-    print("DeepTutor is ready.")
+    print("Kaiwen Crane Tutor is ready.")
 
 #### Python
 
@@ -86,7 +86,7 @@ ${FENCE}
 
 ${FENCE}json
 {
-  "app_name": "DeepTutor",
+  "app_name": "Kaiwen Crane Tutor",
   "default_capability": "chat",
   "enabled_tools": ["rag", "web_search", "exec", "reason"],
   "ui": {
@@ -99,7 +99,7 @@ ${FENCE}
 
 ${FENCE}html
 <section class="deeptutor-card">
-  <h1>DeepTutor</h1>
+  <h1>Kaiwen Crane Tutor</h1>
   <p>Write, revise, and organize learning content with AI.</p>
 </section>
 ${FENCE}
@@ -108,13 +108,13 @@ ${FENCE}
 
 ![](/brand/color-logo.png)
 
-> DeepTutor brand mark used inside the co-writer template.
+> Kaiwen Crane Tutor brand mark used inside the co-writer template.
 
 ### Lists
 
-- DeepTutor Chat
-- DeepTutor Co-Writer
-- DeepTutor Research
+- Kaiwen Crane Tutor Chat
+- Kaiwen Crane Tutor Co-Writer
+- Kaiwen Crane Tutor Research
 
 1. Draft a concept note
 2. Ask AI to refine it
@@ -136,7 +136,7 @@ Research      | Build structured multi-step reports
 
 ### Markdown extras
 
-- [x] Draft a DeepTutor product note
+- [x] Draft a Kaiwen Crane Tutor product note
 - [x] Add references and structure
 - [ ] Polish the final explanation
   - [ ] Check headings
@@ -156,7 +156,7 @@ $$ \\sin(\\alpha)^{\\theta}=\\sum_{i=0}^{n}(x^i + \\cos(f))$$
 
 ${FENCE}flow
 st=>start: Student asks a question
-op=>operation: DeepTutor analyzes intent
+op=>operation: Kaiwen Crane Tutor analyzes intent
 cond=>condition: Need deep workflow?
 chat=>operation: Answer with chat capability
 solve=>operation: Route to deep solve
@@ -172,11 +172,11 @@ ${FENCE}
 ### Sequence Diagram
 
 ${FENCE}seq
-Student->DeepTutor: Ask for help
-DeepTutor->KnowledgeBase: Load context
-Note right of DeepTutor: Collect memory\\nand relevant knowledge
-DeepTutor-->Student: Return guided response
-Student->>DeepTutor: Request rewrite in co-writer
+Student->Kaiwen Crane Tutor: Ask for help
+Kaiwen Crane Tutor->KnowledgeBase: Load context
+Note right of Kaiwen Crane Tutor: Collect memory\\nand relevant knowledge
+Kaiwen Crane Tutor-->Student: Return guided response
+Student->>Kaiwen Crane Tutor: Request rewrite in co-writer
 ${FENCE}
 
 ### End
