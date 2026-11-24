@@ -6,7 +6,7 @@ import { useId, useState, startTransition, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
 import { m, useReducedMotion } from 'framer-motion'
-import { MessageCircle, Search, Columns3, PenLine } from 'lucide-react'
+import { MessageCircle, Search, Columns3, PenLine, School } from 'lucide-react'
 import {
   HomeShelfIcon,
   LearningShelfIcon,
@@ -219,6 +219,7 @@ export function CategoryBody({
   learningSessions?: LearningSessions
 }) {
   const { t } = useTranslation()
+  const { role } = useAuthStatus()
   if (collapsed) return null
   return (
     <div
@@ -238,8 +239,10 @@ export function CategoryBody({
               { href: '/calendar', label: 'Calendar', icon: CalendarDays },
               { href: '/kanban', label: 'Task Board', icon: Columns3 },
               { href: '/co-writer', label: 'Co-Writer', icon: PenLine },
+              { href: '/classroom', label: 'Classroom', icon: School },
             ]
               .filter(item => navVisibleUnderPolicy(item.href, nav.allowedSurfaces))
+              .filter(item => item.href !== '/classroom' || ['admin', 'teacher', 'student'].includes(role ?? ''))
               .map(item => (
                 <NavigationRow
                   key={item.href}
