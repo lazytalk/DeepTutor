@@ -145,6 +145,29 @@ def main(argv: list[str] | None = None) -> int:
     if not requirements:
         return 0
 
+    if "math-animator" in names:
+        # manim needs system tools pip cannot install; report them up front
+        # instead of letting book animation blocks fail at render time.
+        import shutil
+        import sys
+
+        missing_tools = [
+            tool
+            for tool in ("latex", "dvisvgm", "ffmpeg", "pkg-config")
+            if shutil.which(tool) is None
+        ]
+        if missing_tools:
+            emit(f"   ⚠️ math-animator system tools missing: {', '.join(missing_tools)}")
+            if sys.platform == "darwin":
+                emit("      brew install pkg-config cmake cairo pango ffmpeg")
+                emit("      brew install --cask basictex   # LaTeX; restart the shell afterwards")
+            else:
+                emit(
+                    "      apt-get install -y pkg-config cmake libcairo2-dev libpango1.0-dev "
+                    "ffmpeg texlive-latex-extra texlive-fonts-recommended dvisvgm"
+                )
+            emit("      (the production Docker image already bundles all of these)")
+
     missing = missing_requirements(requirements)
     if not missing:
         emit(f"   ✅ Extras already satisfied: {', '.join(names)}")

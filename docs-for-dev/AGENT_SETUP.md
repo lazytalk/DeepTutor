@@ -93,6 +93,23 @@ commit and local edits before updating; do not silently switch branches or
 replace the environment to match this example.
 
 
+### Math animator system prerequisites
+
+The `math-animator` extra (manim) needs system tools pip cannot install. Install
+them once per machine, not per checkout:
+
+- **macOS**: `brew install pkg-config cmake cairo pango ffmpeg`, then LaTeX via
+  `brew install --cask basictex` (restart the shell so `/Library/TeX/texbin` is on
+  PATH; use `mactex-no-gui` for a fuller TeX tree).
+- **Debian/Ubuntu**: `apt-get install -y pkg-config cmake libcairo2-dev
+  libpango1.0-dev ffmpeg texlive-latex-extra texlive-fonts-recommended dvisvgm`.
+- **Production Docker**: the image's parser/manim layers already bundle all of
+  the above — no action needed there.
+
+`python scripts/install_extras.py math-animator` reports any missing system
+tools with the matching install command. Without LaTeX, animation blocks that
+use Tex/MathTex fail at render time with an explicit generator error.
+
 ## 3. Initialize without prompts
 
 Keep the same runtime home for initialization, configuration, diagnostics, and
