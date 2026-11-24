@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 from pathlib import Path
 import tempfile
@@ -28,6 +29,7 @@ from deeptutor.services.voice.options import is_qwen_audio_tts
 
 _TTS_PATH = "services/aigc/multimodal-generation/generation"
 _QWEN_AUDIO_TTS_PATH = "services/audio/tts/SpeechSynthesizer"
+_QWEN_AUDIO_ASR_PATH = "services/aigc/multimodal-generation/generation"
 _AUDIO_CONTENT_TYPES = {
     "mp3": "audio/mpeg",
     "wav": "audio/wav",
@@ -238,7 +240,7 @@ class DashScopeTTSAdapter(BaseTTSAdapter):
 
 
 class DashScopeSTTAdapter(BaseSTTAdapter):
-    """Transcribe local audio over DashScope's native recognition WebSocket."""
+    """Transcribe audio through DashScope's HTTP ASR or legacy WebSocket API."""
 
     async def transcribe(
         self,
@@ -261,6 +263,9 @@ class DashScopeSTTAdapter(BaseSTTAdapter):
         if not config.api_key:
             raise VoiceProviderError("No API key configured for DashScope STT.")
 
+        if self._uses_http_asr(config.model):
+            return await self._transcribe_http(wav_audio, config)
+
         timeout = aiohttp.ClientTimeout(total=config.request_timeout)
         try:
             async with aiohttp.ClientSession(timeout=timeout, trust_env=True) as session:
@@ -275,6 +280,85 @@ class DashScopeSTTAdapter(BaseSTTAdapter):
                     return await self._run_recognition(websocket, wav_audio, config)
         except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
             raise VoiceProviderError(f"DashScope STT request error: {exc}") from exc
+
+    @staticmethod
+    def _uses_http_asr(model: str) -> bool:
+        """Qwen-Audio ASR models use DashScope's native HTTP multimodal API."""
+        normalized = (model or "").strip().lower()
+        return normalized.startswith("qwen-audio-") and "-asr-" in normalized
+
+    @staticmethod
+    def _http_asr_url(base_url: str) -> str:
+        parsed = urlsplit((base_url or "").strip())
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            raise VoiceProviderError("Speech recognition requires an HTTP provider URL.")
+        host = parsed.hostname.lower()
+        official_host = host in {
+            "dashscope.aliyuncs.com",
+            "dashscope-intl.aliyuncs.com",
+            "dashscope-us.aliyuncs.com",
+        } or host.endswith(".maas.aliyuncs.com")
+        if official_host and parsed.path.rstrip("/") == "/compatible-mode/v1":
+            parsed = parsed._replace(path="/api/v1")
+        if parsed.path.rstrip("/").endswith("/" + _QWEN_AUDIO_ASR_PATH):
+            return parsed.geturl()
+        return join_audio_path(parsed.geturl(), _QWEN_AUDIO_ASR_PATH)
+
+    async def _transcribe_http(self, wav_audio: bytes, config: STTConfig) -> str:
+        """Call the Token Plan Qwen-Audio non-realtime ASR endpoint."""
+        data_uri = "data:audio/wav;base64," + base64.b64encode(wav_audio).decode("ascii")
+        parameters: dict[str, Any] = {"format": "wav", "sample_rate": "16000"}
+        if config.language:
+            parameters["language_hints"] = [config.language]
+        payload = {
+            "model": config.model,
+            "input": {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_audio",
+                                "input_audio": {"data": data_uri},
+                            }
+                        ],
+                    }
+                ]
+            },
+            "parameters": parameters,
+        }
+        headers = {
+            "Authorization": f"Bearer {config.api_key}",
+            "Content-Type": "application/json",
+            "X-DashScope-SSE": "disable",
+            **(config.extra_headers or {}),
+        }
+        try:
+            async with httpx.AsyncClient(timeout=config.request_timeout) as client:
+                response = await client.post(
+                    self._http_asr_url(config.base_url), headers=headers, json=payload
+                )
+                _provider_error(response, "DashScope STT")
+                data = response.json()
+                if not isinstance(data, dict):
+                    raise VoiceProviderError("DashScope STT returned a malformed response.")
+                _dashscope_error(data, "DashScope STT")
+        except httpx.TimeoutException as exc:
+            raise VoiceProviderTimeout() from exc
+        except httpx.HTTPError as exc:
+            raise VoiceProviderError(f"DashScope STT request error: {exc}") from exc
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise VoiceProviderError(f"DashScope STT response error: {exc}") from exc
+
+        output = data.get("output")
+        if isinstance(output, dict):
+            text = output.get("text")
+            if not isinstance(text, str) or not text.strip():
+                sentence = output.get("sentence")
+                text = sentence.get("text") if isinstance(sentence, dict) else ""
+            if isinstance(text, str) and text.strip():
+                return text.strip()
+        raise VoiceProviderError("DashScope STT response contained no transcription.")
 
     async def _prepare_wav(self, audio: bytes, filename: str, content_type: str) -> bytes:
         source_suffix = self._audio_suffix(filename, content_type)
