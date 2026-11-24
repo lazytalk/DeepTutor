@@ -42,6 +42,7 @@ import {
   NAV_BY_HREF,
   DEFAULT_COLLAPSED_NAV,
   PRIMARY_NAV_HREFS,
+  PRIMARY_NAV_ROLES,
   isNavActive,
   navVisibleUnderPolicy,
 } from "@/components/sidebar/nav-entries";
@@ -112,15 +113,16 @@ export function SidebarNav({
     setMoreExpanded(browserStorage.readRaw("local", MORE_EXPANDED_KEY) === "1");
   }, []);
 
-  const { learningPolicy } = useAuthStatus();
+  const { learningPolicy, role } = useAuthStatus();
   const { modules } = useModules();
   const moduleHrefs = useMemo(
     () =>
       MODULE_NAV_HREFS.filter((href) =>
         modules !== null && moduleRouteAvailable(href, modules) &&
-        navVisibleUnderPolicy(href, learningPolicy?.allowedSurfaces ?? null),
+        navVisibleUnderPolicy(href, learningPolicy?.allowedSurfaces ?? null) &&
+        (!PRIMARY_NAV_ROLES[href] || PRIMARY_NAV_ROLES[href].includes(role ?? "user")),
       ),
-    [learningPolicy, modules],
+    [learningPolicy, modules, role],
   );
   const resolved = useMemo(
     () => resolveNavLayout(moduleHrefs, layout, DEFAULT_COLLAPSED_NAV),

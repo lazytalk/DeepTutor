@@ -8,6 +8,7 @@ import {
   LayoutGrid,
   ListTodo,
   PenLine,
+  School,
   Settings,
   type LucideIcon,
 } from 'lucide-react'
@@ -27,6 +28,8 @@ export interface NavEntry {
    * entry is hidden whenever a learning policy is in effect (#1222).
    */
   surfaces?: readonly string[]
+  /** Account roles that may see this entry (classroom fork feature). */
+  roles?: readonly string[]
 }
 
 /**
@@ -87,7 +90,20 @@ export const PRIMARY_NAV: NavEntry[] = [
     tooltipKey: 'Agents tooltip',
     defaultCollapsed: true,
   },
+  {
+    href: '/classroom',
+    label: 'Classroom',
+    icon: School,
+    tooltipKey: 'Classroom tooltip',
+    surfaces: ['chat'],
+    roles: ['admin', 'teacher', 'student'],
+  },
 ]
+
+/** Role gates for nav entries; absent means every role. */
+export const PRIMARY_NAV_ROLES: Record<string, readonly string[]> = Object.fromEntries(
+  PRIMARY_NAV.filter(entry => entry.roles).map(entry => [entry.href, entry.roles as readonly string[]])
+)
 
 export const SECONDARY_NAV: NavEntry[] = [{ href: '/settings', label: 'Settings', icon: Settings }]
 

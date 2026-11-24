@@ -12,15 +12,18 @@ export function useWorkspaceChoices() {
   const { t } = useTranslation()
   const pathname = usePathname() ?? '/'
   const active = useActiveWorkspaceId()
-  const { workspaces } = useChatWorkspaces()
-  const current = workspaces.find(row => row.workspace_id === active)
+  const { all } = useChatWorkspaces()
+  const current = all.find(row => row.workspace_id === active)
   const currentName = active ? (current?.display_name ?? t('Workspace unavailable')) : t('General workspace')
   const choices = [
     { workspace_id: '', display_name: t('General workspace') },
-    ...workspaces.filter(row => row.workspace_id === active || (!row.archived && row.status === 'ready')),
+    ...all.filter(row => row.workspace_id === active || (!row.archived && row.status === 'ready')),
   ]
   const choose = (workspaceId: string) => {
-    if (workspaceId !== active) void selectWorkspace(workspaceId, switchDestination(pathname))
+    if (workspaceId === active) return
+    const row = all.find(item => item.workspace_id === workspaceId)
+    // Shared class workspaces open the classroom console, not a chat surface.
+    void selectWorkspace(workspaceId, row?.shared ? '/classroom' : switchDestination(pathname))
   }
   return { active, currentName, choices, choose }
 }

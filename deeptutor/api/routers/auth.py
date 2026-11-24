@@ -346,6 +346,8 @@ class AuthStatusResponse(BaseModel):
     username: str | None = None
     role: str | None = None
     is_admin: bool = False
+    is_teacher: bool = False
+    registration_open: bool = False
     avatar: str = ""
     preset: AccountPreset | None = None
     learning_policy: dict | None = None
@@ -539,7 +541,7 @@ def _install_request_workspace(request) -> None:
             ("/api/skills", "/api/space/mcp")
         )
         management = path.startswith(
-            ("/api/settings", "/api/auth", "/api/multi-user", "/api/task-board", "/api/calendar")
+            ("/api/settings", "/api/auth", "/api/multi-user", "/api/task-board", "/api/calendar", "/api/classroom")
         )
         selected = install_workspace_scope(
             None if management or catalog_management else header if header is not None else query
@@ -552,6 +554,14 @@ def _install_request_workspace(request) -> None:
                 skill_workspace,
                 existing=getattr(request, "method", "GET") in {"GET", "HEAD", "OPTIONS"},
             )
+        # Classroom members browse the class workspace read-only. WebSockets
+        # carry no request method, so the archived-style method check alone
+        # would let a member open a writing turn stream: deny /ws explicitly.
+        if selected.class_member and (
+            getattr(request, "method", "GET") not in {"GET", "HEAD", "OPTIONS"}
+            or path.startswith("/ws")
+        ):
+            raise WorkspaceError("Class workspaces are read-only for members.")
         if (
             not management
             and selected.archived
@@ -652,6 +662,36 @@ async def require_admin(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
+        )
+    return payload
+
+
+async def require_teacher(
+    payload: TokenPayload | None = Depends(require_auth),
+) -> TokenPayload:
+    """FastAPI dependency requiring the teacher role (admins pass through).
+
+    The JWT role is a login-time snapshot, so the store role is re-read on
+    every check — the same precedent as ``guardian_can_access``. When
+    AUTH_ENABLED=false, all requests are treated as admin.
+    """
+    if not AUTH_ENABLED:
+        return _local_admin_token_payload()
+
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Teacher access required",
+        )
+    if payload.role == "admin":
+        return payload
+    from deeptutor.multi_user.identity import get_user_by_id
+
+    info = get_user_by_id(payload.user_id)
+    if info is None or info[1].get("role") != "teacher":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Teacher access required",
         )
     return payload
 
@@ -919,6 +959,8 @@ async def auth_status(
         # what clients need to render the scoped experience.
         if learning_policy is not None and preset != "learner":
             preset = "learner"
+    from deeptutor.services.config.runtime_settings import load_auth_settings
+
     return AuthStatusResponse(
         enabled=True,
         authenticated=payload is not None,
@@ -926,10 +968,41 @@ async def auth_status(
         username=payload.username if payload else None,
         role=payload.role if payload else None,
         is_admin=payload.role == "admin" if payload else False,
+        is_teacher=payload.role == "teacher" if payload else False,
+        registration_open=bool(load_auth_settings().get("allow_registration")),
         avatar=avatar,
         preset=preset,
         learning_policy=learning_policy,
     )
+
+
+class RegistrationSettingsRequest(BaseModel):
+    """Admin toggle for open self-registration (classroom fork feature)."""
+
+    allow_registration: bool
+    registration_role: str = "student"
+
+
+@router.put("/registration")
+async def set_registration(
+    body: RegistrationSettingsRequest,
+    _: TokenPayload | None = Depends(require_admin),
+) -> dict:
+    """Enable/close open self-registration and pick the role it grants.
+
+    Read per request by ``register`` and ``auth_status``, so toggling takes
+    effect without a restart. Never grants admin.
+    """
+    from deeptutor.multi_user.models import VALID_ROLES
+    from deeptutor.services.config.runtime_settings import get_runtime_settings_service
+
+    role = body.registration_role if body.registration_role in VALID_ROLES and body.registration_role != "admin" else "student"
+    service = get_runtime_settings_service()
+    current = service.load_auth(include_process_overrides=False)
+    service.save_auth(
+        {**current, "allow_registration": body.allow_registration, "registration_role": role}
+    )
+    return {"ok": True, "allow_registration": body.allow_registration, "registration_role": role}
 
 
 @router.post("/login")
@@ -1288,8 +1361,13 @@ async def register(body: RegisterRequest, request: Request, response: Response) 
             "is_admin": False,
         }
 
-    # Standard mode — only allowed before the first admin exists.
-    if not is_first_user():
+    # Standard mode — bootstrap, or open self-registration when an admin
+    # enabled it (classroom fork feature; default off preserves upstream).
+    from deeptutor.services.config.runtime_settings import load_auth_settings
+
+    auth_settings = load_auth_settings()
+    first_user = is_first_user()
+    if not first_user and not auth_settings.get("allow_registration"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Self-registration is closed. Ask an administrator to create your account.",
@@ -1302,7 +1380,14 @@ async def register(body: RegisterRequest, request: Request, response: Response) 
             detail="Username already taken",
         )
 
-    add_user(body.username, body.password)
+    if first_user:
+        add_user(body.username, body.password)
+    else:
+        from deeptutor.multi_user.models import VALID_ROLES
+
+        configured = str(auth_settings.get("registration_role") or "student")
+        role = configured if configured in VALID_ROLES and configured != "admin" else "student"
+        add_user(body.username, body.password, role=role)
     user_id = ""
     role = "user"
     for item in list_users():

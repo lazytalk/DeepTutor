@@ -20,15 +20,15 @@ import { GrantEditor } from "@/features/multi-user/components/GrantEditor";
 import { BookPermissionEditor } from "@/features/multi-user/components/BookPermissionEditor";
 import { LearnerProfileEditor } from "@/features/multi-user/components/LearnerProfileEditor";
 import { GuardianRelationshipsEditor } from "@/features/multi-user/components/GuardianRelationshipsEditor";
+import { RegistrationToggle } from "@/features/classroom/components/RegistrationToggle";
+import type { AccountRole } from "@/lib/account-role";
 import { UserAvatar } from "@/components/UserAvatar";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { filterUsersByQuery } from "@/lib/admin-users";
 import { accountRoleLabelKey } from "@/lib/account-role";
 import {
   Search,
-  Shield,
   ShieldCheck,
-  ShieldOff,
   Trash2,
   RefreshCw,
   ArrowLeft,
@@ -233,6 +233,20 @@ export default function AdminUsersPage() {
     );
   }
 
+  async function changeRole(user: (typeof users)[number], role: string) {
+    setActionError("");
+    try {
+      await setUserRole(user.username, role as AccountRole);
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.username === user.username ? { ...u, role: role as AccountRole } : u,
+        ),
+      );
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : String(error));
+    }
+  }
+
   async function handleBatchDeleteConfirm() {
     if (batchDeleteBusy || selectedUsernames.length === 0) return;
     setBatchDeleteBusy(true);
@@ -318,6 +332,7 @@ export default function AdminUsersPage() {
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              <RegistrationToggle />
               <button
                 onClick={openCreateDialog}
                 className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm
@@ -602,39 +617,24 @@ export default function AdminUsersPage() {
                                 </button>
                               </Tooltip>
                             )}
-                            <Tooltip label={
+                            <select
+                              value={user.role}
+                              disabled={isSelf}
+                              aria-label={
                                 isSelf
                                   ? t("Cannot change your own role")
-                                  : user.role === "admin"
-                                    ? t("Demote to user")
-                                    : t("Promote to admin")
-                              } side="top">
-                              <button
-                                onClick={() =>
-                                  setConfirmTarget({
-                                    kind: isAdmin ? "demote" : "promote",
-                                    user,
-                                  })
-                                }
-                                disabled={isSelf}
-                                aria-label={
-                                  isSelf
-                                    ? t("Cannot change your own role")
-                                    : user.role === "admin"
-                                      ? t("Demote to user")
-                                      : t("Promote to admin")
-                                }
-                                className="rounded-lg p-1.5 text-[var(--muted-foreground)]
-                                         hover:bg-[var(--background)] hover:text-[var(--foreground)]
-                                         disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                              >
-                                {user.role === "admin" ? (
-                                  <ShieldOff size={15} />
-                                ) : (
-                                  <Shield size={15} />
-                                )}
-                              </button>
-                            </Tooltip>
+                                  : t("Role for {{username}}", { username: user.username })
+                              }
+                              onChange={(event) => void changeRole(user, event.target.value)}
+                              className="rounded-lg border border-[var(--border)] bg-[var(--background)]
+                                         px-1.5 py-1 text-xs text-[var(--foreground)]
+                                         disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <option value="user">{t("User")}</option>
+                              <option value="student">{t("Student")}</option>
+                              <option value="teacher">{t("Teacher")}</option>
+                              <option value="admin">{t("Admin")}</option>
+                            </select>
                             <Tooltip label={
                                 isSelf
                                   ? t("Cannot delete your own account")

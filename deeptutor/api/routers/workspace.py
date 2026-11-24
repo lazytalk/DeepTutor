@@ -180,7 +180,13 @@ async def download_workspace_export(operation_id: str) -> FileResponse:
 
 @settings_router.get("/registrations")
 async def list_workspaces() -> dict:
-    return get_content_workspace_service().describe_catalog()
+    payload = get_content_workspace_service().describe_catalog()
+    # Classroom seam: surface member class workspaces read-only. Router-level
+    # union keeps the catalog internals (create/update dedup) owner-pure.
+    from deeptutor.multi_user import classroom
+
+    payload["workspaces"] = list(payload["workspaces"]) + classroom.shared_workspace_rows()
+    return payload
 
 
 class WorkspaceMigrationPayload(BaseModel):

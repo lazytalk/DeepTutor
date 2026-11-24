@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "id": "classroom",
+  "distribution": "deeptutor-classroom",
+  "requires": ["server"],
+  "optional": ["mastery", "questions", "notebook"],
+  "paths": [
+    "deeptutor/multi_user/classroom.py",
+    "deeptutor/services/classroom",
+    "deeptutor/api/routers/classroom.py"
+  ],
+  "capabilities": {},
+  "loops": {},
+  "tools": {},
+  "routes": [
+    {
+      "reference": "deeptutor.api.routers.classroom:router",
+      "options": {
+        "prefix": "/api/classroom",
+        "tags": ["classroom"]
+      },
+      "auth": "authenticated",
+      "order": 567
+    }
+  ],
+  "commands": [],
+  "navigation": ["/classroom"],
+  "services": [],
+  "requirements": [],
+  "executables": []
+}

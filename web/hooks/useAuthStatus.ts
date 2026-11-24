@@ -15,6 +15,8 @@ export interface AuthStatusState {
   authenticated: boolean;
   /** Whether the authenticated user is an admin. */
   isAdmin: boolean;
+  /** Stored account role (admin/teacher/student/user); null when unknown. */
+  role: string | null;
   /** Stable account id for account-scoped browser state. */
   userId: string | null;
   /** False when the runtime status endpoint could not be reached. */
@@ -33,6 +35,7 @@ const INITIAL: AuthStatusState = {
   enabled: false,
   authenticated: false,
   isAdmin: false,
+  role: null,
   userId: null,
   statusAvailable: false,
   loading: true,
@@ -65,6 +68,7 @@ function loadAuthStatus(): Promise<AuthStatusState> {
     enabled: Boolean(status?.enabled),
     authenticated: Boolean(status?.authenticated),
     isAdmin: status?.role === "admin",
+    role: typeof status?.role === "string" ? status.role : null,
     userId:
       typeof status?.user_id === "string" && status.user_id.trim()
         ? status.user_id

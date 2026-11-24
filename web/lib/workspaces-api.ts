@@ -42,6 +42,11 @@ export interface ChatWorkspaceRegistration {
   created_at: string
   status: 'ready' | 'invalid'
   error: string
+  /** Classroom seam: shared class workspace, read-only for members. */
+  shared?: boolean
+  read_only?: boolean
+  class_id?: string
+  owner_username?: string
 }
 
 const endpoint = '/api/settings/workspace/registrations'

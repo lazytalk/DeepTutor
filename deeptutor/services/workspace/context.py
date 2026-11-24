@@ -24,6 +24,10 @@ class WorkspaceScope:
     account_root: Path
     content_root: Path
     archived: bool = False
+    # Verified classroom membership: content lives in the teacher's account
+    # while account-level paths (settings, memory) stay the requester's.
+    class_id: str = ""
+    class_member: bool = False
 
 
 _scope: ContextVar[WorkspaceScope | None] = ContextVar("content_workspace_scope", default=None)
@@ -72,6 +76,29 @@ def resolve_workspace_scope(workspace_id: str | None = None) -> WorkspaceScope:
     workspace_id = str(workspace_id or "").strip()
     if not workspace_id or workspace_id == service._builtin_id("general"):
         return WorkspaceScope("", base.workspace_root, base.get_workspace_dir())
+    # Classroom seam: a class workspace owned by another account resolves for
+    # invited members into the teacher's content root, read-only. The owner
+    # falls through to the normal owner-scoped validation below.
+    from deeptutor.multi_user import classroom
+    from deeptutor.multi_user.context import get_current_user
+
+    class_record = classroom.class_for_workspace(workspace_id)
+    if class_record is not None and class_record["teacher_id"] != get_current_user().id:
+        if class_record["archived_at"] or not classroom.is_member(
+            class_record["id"], get_current_user().id
+        ):
+            raise WorkspaceError("This workspace is not available to your account.")
+        with classroom.teacher_account_context(class_record):
+            binding = service.validate_chat_binding(workspace_id, existing=True)
+            teacher_root = get_account_path_service().workspace_root
+        return WorkspaceScope(
+            workspace_id,
+            teacher_root,
+            binding.root,
+            False,
+            class_id=class_record["id"],
+            class_member=True,
+        )
     # Catalog resolution checks owner and kind. A session/system folder is
     # never an application data scope, even if its id is known to the caller.
     binding = service.validate_chat_binding(workspace_id, existing=True)
@@ -147,13 +174,29 @@ def scoped_path_service(account: PathService) -> PathService:
     scope = _scope.get()
     if scope is None or not scope.workspace_id:
         return account
-    if account.workspace_root != scope.account_root:
+    if account.workspace_root != scope.account_root and not scope.class_member:
         # Nested explicit user contexts must not inherit the parent's data
         # scope. Never silently route a mismatched identity to another root.
         raise WorkspaceError("The workspace belongs to a different account context.")
     from deeptutor.services.workspace import get_content_workspace_service
 
-    current = get_content_workspace_service().binding_by_id(scope.workspace_id)
+    if scope.class_member:
+        # Re-verify membership on every store access: a revoked member must
+        # lose read access immediately, not at the next scope install.
+        from deeptutor.multi_user import classroom
+        from deeptutor.multi_user.context import get_current_user
+
+        record = classroom.class_by_id(scope.class_id)
+        if (
+            record is None
+            or record["archived_at"]
+            or not classroom.is_member(scope.class_id, get_current_user().id)
+        ):
+            raise WorkspaceError("This class workspace is no longer available to your account.")
+        with classroom.teacher_account_context(record):
+            current = get_content_workspace_service().binding_by_id(scope.workspace_id)
+    else:
+        current = get_content_workspace_service().binding_by_id(scope.workspace_id)
     if current.root != scope.content_root:
         raise WorkspaceError("Workspace storage moved. Reload before continuing.")
     return WorkspacePathService(account, scope)

@@ -19,7 +19,7 @@ import {
  * each keeping its own idea of what exists.
  */
 export function useChatWorkspaces() {
-  const [workspaces, setWorkspaces] = useState<ChatWorkspaceRegistration[]>([]);
+  const [all, setAll] = useState<ChatWorkspaceRegistration[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export function useChatWorkspaces() {
       void listWorkspaces(true)
         .then((rows) => {
           if (!alive) return;
-          setWorkspaces(rows.filter((row) => row.kind === "workspace"));
+          setAll(rows);
           setError("");
         })
         .catch((err) => {
@@ -42,5 +42,8 @@ export function useChatWorkspaces() {
     };
   }, []);
 
-  return { workspaces, error };
+  // Shared class workspaces are browse-only: never a conversation filing
+  // destination for members, but still switchable from the workspace picker.
+  const workspaces = all.filter((row) => row.kind === "workspace" && !row.shared);
+  return { workspaces, all, error };
 }

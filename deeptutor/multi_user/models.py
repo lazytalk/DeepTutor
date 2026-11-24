@@ -76,12 +76,17 @@ class CurrentUser:
     def is_admin(self) -> bool:
         return self.role == "admin"
 
+    @property
+    def is_teacher(self) -> bool:
+        return self.role == "teacher"
+
     def public_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "username": self.username,
             "role": self.role,
             "is_admin": self.is_admin,
+            "is_teacher": self.is_teacher,
         }
 
 

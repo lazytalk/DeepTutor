@@ -115,7 +115,19 @@ DEFAULT_AUTH_SETTINGS: dict[str, Any] = {
     "token_expire_hours": 24,
     "cookie_secure": False,
     "private_login_hosts": [],
+    # Classroom fork feature: open self-registration after bootstrap, and the
+    # role new self-registrants receive. Off/user preserves upstream behavior.
+    "allow_registration": False,
+    "registration_role": "student",
 }
+
+
+def _registration_role(value: Any) -> str:
+    """Least-privilege role for open self-registration; never admin."""
+    from deeptutor.multi_user.models import VALID_ROLES
+
+    role = str(value or "student")
+    return role if role in VALID_ROLES and role != "admin" else "student"
 
 DEFAULT_INTEGRATIONS_SETTINGS: dict[str, Any] = {
     "version": 2,
@@ -1485,6 +1497,8 @@ class RuntimeSettingsService:
             "token_expire_hours": max(1, _coerce_int(settings.get("token_expire_hours"), 24)),
             "cookie_secure": _coerce_bool(settings.get("cookie_secure"), False),
             "private_login_hosts": _host_list(settings.get("private_login_hosts")),
+            "allow_registration": _coerce_bool(settings.get("allow_registration"), False),
+            "registration_role": _registration_role(settings.get("registration_role")),
         }
 
     def _normalize_integrations(self, settings: dict[str, Any]) -> dict[str, Any]:

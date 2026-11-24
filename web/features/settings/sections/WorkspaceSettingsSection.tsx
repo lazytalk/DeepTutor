@@ -39,28 +39,31 @@ function WorkspaceRow({ row, run, busy }: { row: ChatWorkspaceRegistration; run:
         <Icon size={18} strokeWidth={1.6} className="shrink-0 text-[var(--muted-foreground)]" />
         <h3 className="min-w-0 flex-1 break-words text-[14px] font-medium">{label}</h3>
         {row.archived && <span className="text-xs text-[var(--muted-foreground)]">{t('Archived')}</span>}
+        {row.shared && <span className="text-xs text-[var(--muted-foreground)]">{t('Shared class')} · {t('Read-only')}</span>}
         <div className="flex max-w-full flex-wrap items-center gap-0.5 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-          {row.kind !== 'system' && !row.archived && row.status === 'ready' && !busy && (
+          {row.kind !== 'system' && !row.shared && !row.archived && row.status === 'ready' && !busy && (
             <Link className={actionClass} href={row.kind === 'general' ? '/chat?dt_workspace=' : workspaceChatHref(row.workspace_id)}>
               <Plus size={14} />{t('New chat')}
             </Link>
           )}
-          {row.kind !== 'system' && !row.archived && <button type="button" className={actionClass} onClick={() => { setResources(row.resources ?? inheritedWorkspaceResources()); setResourcesOpen(!resourcesOpen) }}><Settings2 size={14} />{t('Assigned resources')}</button>}
-          {row.kind !== 'system' && !row.archived && <button type="button" className={actionClass} aria-expanded={instructionsOpen} onClick={() => { setInstructions(row.instructions ?? ''); setInstructionsOpen(!instructionsOpen) }}><FileText size={14} />{t('Workspace instructions')}</button>}
-          {custom && <Tooltip label={t('Rename workspace')} side="top">
+          {row.kind !== 'system' && !row.shared && !row.archived && <button type="button" className={actionClass} onClick={() => { setResources(row.resources ?? inheritedWorkspaceResources()); setResourcesOpen(!resourcesOpen) }}><Settings2 size={14} />{t('Assigned resources')}</button>}
+          {row.kind !== 'system' && !row.shared && !row.archived && <button type="button" className={actionClass} aria-expanded={instructionsOpen} onClick={() => { setInstructions(row.instructions ?? ''); setInstructionsOpen(!instructionsOpen) }}><FileText size={14} />{t('Workspace instructions')}</button>}
+          {custom && !row.shared && <Tooltip label={t('Rename workspace')} side="top">
             <button type="button" className={actionClass} aria-label={t('Rename workspace')} onClick={() => { setName(row.display_name); setEditing(!editing); setMoving(false) }}><Pencil size={14} /></button>
           </Tooltip>}
-          <Tooltip label={t('Move folder')} side="top">
+          {!row.shared && <Tooltip label={t('Move folder')} side="top">
             <button type="button" className={actionClass} aria-label={t('Move folder')}  onClick={() => { setMoving(!moving); setEditing(false); setDestination('') }}><FolderInput size={14} /></button>
-          </Tooltip>
-          {custom && <Tooltip label={row.archived ? t('Restore workspace') : t('Archive workspace')} side="top">
+          </Tooltip>}
+          {custom && !row.shared && <Tooltip label={row.archived ? t('Restore workspace') : t('Archive workspace')} side="top">
             <button type="button" className={actionClass} aria-label={row.archived ? t('Restore workspace') : t('Archive workspace')} onClick={() => void run(() => saveWorkspace({ archived: !row.archived }, row.workspace_id))}>{row.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}</button>
           </Tooltip>}
         </div>
       </div>
       <div className="mt-1.5 min-w-0 sm:pl-[30px]">
         {!custom && <p className="mb-2 text-[12.5px] leading-relaxed text-[var(--muted-foreground)]">{row.kind === 'system' ? t('Sanitized configuration snapshots, Skill files and MCP inventory. API keys and tokens remain in private configuration.') : t('Conversations without a selected workspace share files in this folder.')}</p>}
-        <p className="select-all break-all font-mono text-[11.5px] leading-relaxed text-[var(--muted-foreground)]">{row.path}</p>
+        {row.shared
+          ? <p className="text-[12.5px] leading-relaxed text-[var(--muted-foreground)]">{t('Owned by')} {row.owner_username}</p>
+          : <p className="select-all break-all font-mono text-[11.5px] leading-relaxed text-[var(--muted-foreground)]">{row.path}</p>}
         {row.archived && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{t('Archived. Existing conversations and files are kept.')}</p>}
         {instructionsOpen && (
           <form className={`${subPanelClass} mt-3 space-y-3 p-4`} onSubmit={async event => { event.preventDefault(); if (await run(() => saveWorkspace({ instructions }, row.workspace_id))) setInstructionsOpen(false) }}>
