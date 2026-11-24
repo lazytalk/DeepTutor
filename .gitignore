@@ -294,3 +294,6 @@ dmypy.json
 *.mp3
 *.wav
 *.ogg
+
+# Local pre-rebrand logo archives (old artwork remains recoverable from git history)
+assets/logo-backup-*/
