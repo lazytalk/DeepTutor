@@ -22,6 +22,7 @@ import {
   type PoolStudent,
 } from "../api";
 import { AssignmentBoard } from "./AssignmentBoard";
+import { ProgressDashboard } from "./ProgressDashboard";
 import { StudentActivityViewer } from "./StudentActivityViewer";
 
 const panel = "rounded-xl border border-[var(--border)] bg-[var(--secondary)] p-4";
@@ -259,6 +260,7 @@ export default function ClassroomConsole() {
             workspaceId={selected.workspace_id}
             members={members}
           />
+          <ProgressDashboard classId={selected.id} />
           <section className={panel}>
             <h2 className="mb-2 text-sm font-medium">{t("Assigned work")}</h2>
             <select

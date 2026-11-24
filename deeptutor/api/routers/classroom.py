@@ -528,3 +528,71 @@ async def my_assignments(_: object = Depends(require_auth)) -> dict:
     _require_mode()
     user = get_current_user()
     return {"assignments": classroom.list_assignments(student_id=user.id)}
+
+
+@router.get("/classes/{class_id}/progress")
+async def class_progress(class_id: str, _: object = Depends(require_teacher)) -> dict:
+    """P3: per-student progress over assigned copies (read-only aggregation)."""
+    _require_mode()
+    import asyncio
+
+    from deeptutor.learning.storage import LearningStore
+    from deeptutor.multi_user.identity import get_user_by_id
+    from deeptutor.services.classroom.assignments import student_context
+    from deeptutor.services.practice.storage import PracticeStore
+    from deeptutor.services.session.sqlite_store import get_sqlite_session_store
+
+    record = _require_owner(class_id)
+    rows = []
+    for member in record["members"]:
+        student_id = member["user_id"]
+        info = get_user_by_id(student_id)
+        topics = []
+        with student_context(student_id):
+            for assignment in classroom.list_assignments(
+                teacher_id=record["teacher_id"], student_id=student_id, kind="mastery_topic"
+            ):
+                with workspace_context(assignment["target_workspace_id"] or None):
+                    store = LearningStore()
+                    progress = store.load(assignment["target_id"])
+                    if progress is None:
+                        continue
+                    knowledge_points = [
+                        kp for module in progress.modules for kp in module.knowledge_points
+                    ]
+                    thresholds = {m.id: m.pass_threshold for m in progress.modules}
+                    mastered = 0
+                    for kp in knowledge_points:
+                        ktype = progress.knowledge_types.get(kp.id) or kp.type
+                        ktype_value = getattr(ktype, "value", str(ktype)).lower()
+                        if ktype_value in ("memory", "procedure"):
+                            if progress.mastery_levels.get(kp.id, 0.0) >= thresholds.get(
+                                kp.module_id, 0.7
+                            ):
+                                mastered += 1
+                        elif progress.qualitative_mastery.get(kp.id):
+                            mastered += 1
+                    topics.append(
+                        {
+                            "target_id": assignment["target_id"],
+                            "name": progress.name or assignment["target_id"],
+                            "kp_total": len(knowledge_points),
+                            "kp_mastered": mastered,
+                            "reviews_due": len(progress.review_queue),
+                            "sessions": len(store.list_session_ids(assignment["target_id"])),
+                        }
+                    )
+            with workspace_context(None):
+                session_store = get_sqlite_session_store()
+                practice = await asyncio.to_thread(
+                    PracticeStore(session_store.db_path).analytics, "UTC", 30
+                )
+        rows.append(
+            {
+                "student_id": student_id,
+                "username": info[0] if info else student_id,
+                "topics": topics,
+                "practice_totals": practice.get("totals", {}),
+            }
+        )
+    return {"rows": rows}
