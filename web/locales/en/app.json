@@ -6684,5 +6684,20 @@
   "Student account created.": "Student account created.",
   "Saved.": "Saved.",
   "Removed.": "Removed.",
-  "Read-only class workspace: browsing only.": "Read-only class workspace: browsing only."
+  "Read-only class workspace: browsing only.": "Read-only class workspace: browsing only.",
+  "Assignments": "Assignments",
+  "Guided Learning topic": "Guided Learning topic",
+  "Practice question set": "Practice question set",
+  "Source in class workspace": "Source in class workspace",
+  "Assign to selected": "Assign to selected",
+  "Assigned.": "Assigned.",
+  "Assigned work": "Assigned work",
+  "View transcript": "View transcript",
+  "No sessions yet.": "No sessions yet.",
+  "Empty transcript.": "Empty transcript.",
+  "Edit answer": "Edit answer",
+  "My assignments": "My assignments",
+  "Open copy": "Open copy",
+  "No assignments yet.": "No assignments yet.",
+  "Pick a student": "Pick a student"
 }

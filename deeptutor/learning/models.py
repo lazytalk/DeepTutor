@@ -552,6 +552,9 @@ class TopicSourceKind(str, Enum):
     COWRITER = "cowriter"
     #: One partner-group conversation, as ``{group_id}:{session_key}``.
     PARTNER_GROUP = "partner_group"
+    #: Inline bounded text snapshot (classroom assign-by-copy): the material
+    #: travels with the copied topic instead of resolving in another account.
+    TEXT = "text"
 
 
 class TopicSource(BaseModel):

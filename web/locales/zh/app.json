@@ -6684,5 +6684,20 @@
   "Student account created.": "学生账号已创建。",
   "Saved.": "已保存。",
   "Removed.": "已移除。",
-  "Read-only class workspace: browsing only.": "只读班级工作区：仅可浏览。"
+  "Read-only class workspace: browsing only.": "只读班级工作区：仅可浏览。",
+  "Assignments": "作业分配",
+  "Guided Learning topic": "引导学习主题",
+  "Practice question set": "练习题库",
+  "Source in class workspace": "班级工作区中的来源",
+  "Assign to selected": "分配给所选学生",
+  "Assigned.": "已分配。",
+  "Assigned work": "已分配的学习内容",
+  "View transcript": "查看对话记录",
+  "No sessions yet.": "暂无对话。",
+  "Empty transcript.": "空对话记录。",
+  "Edit answer": "编辑答案",
+  "My assignments": "我的作业",
+  "Open copy": "打开副本",
+  "No assignments yet.": "暂无作业。",
+  "Pick a student": "选择学生"
 }

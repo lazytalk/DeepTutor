@@ -199,6 +199,120 @@ def teacher_can_access_student(teacher_id: str, student_id: str) -> bool:
     )
 
 
+def _assignments_path():
+    return paths.SYSTEM_ROOT / "classroom_assignments.json"
+
+
+def _load_assignments() -> list[dict[str, Any]]:
+    import json
+
+    path = _assignments_path()
+    if not path.exists():
+        return []
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    return payload if isinstance(payload, list) else []
+
+
+def _write_assignments(records: list[dict[str, Any]]) -> None:
+    from deeptutor.services.file_io import atomic_write_json
+
+    path = _assignments_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_json(path, records)
+
+
+def create_assignment(
+    class_id: str,
+    teacher_id: str,
+    student_id: str,
+    kind: str,
+    source_id: str,
+    target_workspace_id: str,
+    target_id: str,
+) -> dict[str, Any]:
+    with _WRITE_LOCK:
+        records = _load_assignments()
+        record = {
+            "id": f"as_{uuid4().hex}",
+            "class_id": class_id,
+            "teacher_id": teacher_id,
+            "student_id": student_id,
+            "kind": kind,
+            "source_id": source_id,
+            "target_workspace_id": target_workspace_id,
+            "target_id": target_id,
+            "created_at": _utc_now(),
+            "created_by": teacher_id,
+            "revoked_at": None,
+        }
+        records.append(record)
+        _write_assignments(records)
+    log_admin_action(
+        "classroom.assign", target_user_id=student_id, summary={"class_id": class_id, "kind": kind}
+    )
+    return deepcopy(record)
+
+
+def list_assignments(
+    *,
+    class_id: str | None = None,
+    student_id: str | None = None,
+    teacher_id: str | None = None,
+    kind: str | None = None,
+    include_revoked: bool = False,
+) -> list[dict[str, Any]]:
+    out = []
+    for record in _load_assignments():
+        if not include_revoked and record.get("revoked_at"):
+            continue
+        if class_id is not None and record["class_id"] != class_id:
+            continue
+        if student_id is not None and record["student_id"] != student_id:
+            continue
+        if teacher_id is not None and record["teacher_id"] != teacher_id:
+            continue
+        if kind is not None and record["kind"] != kind:
+            continue
+        out.append(deepcopy(record))
+    return out
+
+
+def assignment_by_id(assignment_id: str) -> dict[str, Any] | None:
+    for record in _load_assignments():
+        if record["id"] == assignment_id:
+            return deepcopy(record)
+    return None
+
+
+def revoke_assignment(assignment_id: str, actor_id: str) -> dict[str, Any]:
+    with _WRITE_LOCK:
+        records = _load_assignments()
+        record = next((r for r in records if r["id"] == assignment_id), None)
+        if record is None:
+            raise ValueError("Unknown assignment.")
+        if record["teacher_id"] != actor_id:
+            raise ValueError("Only the assigning teacher can revoke an assignment.")
+        record["revoked_at"] = _utc_now()
+        _write_assignments(records)
+    log_admin_action("classroom.revoke", summary={"assignment_id": assignment_id})
+    return deepcopy(record)
+
+
+def live_assignment_for(
+    teacher_id: str, student_id: str, kind: str, target_id: str
+) -> dict[str, Any] | None:
+    """Teacher reach into a student copy requires membership AND a live assignment."""
+    if not teacher_can_access_student(teacher_id, student_id):
+        return None
+    for record in list_assignments(teacher_id=teacher_id, student_id=student_id, kind=kind):
+        if record["target_id"] == target_id:
+            return record
+    return None
+
+
 def store_role(user_id: str) -> str | None:
     """Current store role (JWT roles are login-time snapshots)."""
     from .identity import get_user_by_id

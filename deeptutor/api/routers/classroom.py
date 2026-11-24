@@ -16,6 +16,7 @@ from deeptutor.api.routers.auth import require_auth, require_teacher
 from deeptutor.multi_user import classroom
 from deeptutor.multi_user.context import get_current_user
 from deeptutor.services.auth import AUTH_ENABLED, POCKETBASE_ENABLED
+from deeptutor.services.workspace.context import workspace_context
 
 router = APIRouter()
 
@@ -245,3 +246,285 @@ async def my_classes(_: object = Depends(require_auth)) -> dict:
     _require_mode()
     user = get_current_user()
     return {"classes": [_public_class(r) for r in classroom.member_classes(user.id)]}
+
+
+# --- P2: assign-by-copy and teacher reach into assigned copies ---
+
+
+class AssignRequest(BaseModel):
+    kind: str = Field(pattern="^(mastery_topic|question_set)$")
+    source_id: str
+    student_ids: list[str] | None = None
+    target_workspace_id: str = ""
+
+
+class RenameTopicRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+
+
+class PatchEntryRequest(BaseModel):
+    question: str | None = None
+    answer: str | None = None
+    explanation: str | None = None
+
+
+def _class_or_404(class_id: str) -> dict:
+    record = classroom.class_by_id(class_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Unknown class.")
+    return record
+
+
+@router.post("/classes/{class_id}/assignments", status_code=status.HTTP_201_CREATED)
+async def create_assignments(
+    class_id: str,
+    body: AssignRequest,
+    _: object = Depends(require_teacher),
+) -> dict:
+    _require_mode()
+    from deeptutor.services.classroom import assignments as delivery
+
+    record = _require_owner(class_id)
+    members = [m["user_id"] for m in record["members"]]
+    targets = body.student_ids if body.student_ids is not None else members
+    unknown = [uid for uid in targets if uid not in members]
+    if unknown:
+        raise HTTPException(status_code=400, detail="Every target must be a class member.")
+    results = []
+    for student_id in targets:
+        try:
+            if body.kind == "mastery_topic":
+                target_id = await delivery.copy_mastery_topic(
+                    record, body.source_id, student_id, body.target_workspace_id
+                )
+            else:
+                target_id = str(
+                    await delivery.copy_question_set(
+                        record, int(body.source_id), student_id, body.target_workspace_id
+                    )
+                )
+        except (ValueError, TypeError) as exc:
+            results.append({"student_id": student_id, "ok": False, "error": str(exc)})
+            continue
+        assignment = classroom.create_assignment(
+            class_id,
+            record["teacher_id"],
+            student_id,
+            body.kind,
+            body.source_id,
+            body.target_workspace_id,
+            target_id,
+        )
+        results.append({"student_id": student_id, "ok": True, "assignment_id": assignment["id"]})
+    return {"results": results}
+
+
+@router.get("/classes/{class_id}/assignments")
+async def list_class_assignments(class_id: str, _: object = Depends(require_teacher)) -> dict:
+    _require_mode()
+    _require_owner(class_id)
+    return {"assignments": classroom.list_assignments(class_id=class_id, include_revoked=True)}
+
+
+@router.delete("/assignments/{assignment_id}")
+async def revoke_assignment(assignment_id: str, _: object = Depends(require_teacher)) -> dict:
+    _require_mode()
+    try:
+        record = classroom.revoke_assignment(assignment_id, get_current_user().id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"assignment": record}
+
+
+def _live_assignment_or_403(kind: str, student_id: str, target_id: str) -> dict:
+    record = classroom.live_assignment_for(get_current_user().id, student_id, kind, target_id)
+    if record is None:
+        raise HTTPException(status_code=403, detail="No live assignment grants access to this copy.")
+    return record
+
+
+@router.get("/students/{student_id}/topics/{path_id}")
+async def view_student_topic(
+    student_id: str, path_id: str, _: object = Depends(require_teacher)
+) -> dict:
+    _require_mode()
+    from deeptutor.api.routers.mastery_path import _topic_payload
+    from deeptutor.learning.storage import LearningStore
+    from deeptutor.services.classroom.assignments import student_context
+
+    record = _live_assignment_or_403("mastery_topic", student_id, path_id)
+    with student_context(student_id):
+        with workspace_context(record["target_workspace_id"] or None):
+            payload = _topic_payload(LearningStore(), path_id)
+    if payload is None:
+        raise HTTPException(status_code=404, detail="The assigned copy no longer exists.")
+    return payload
+
+
+@router.put("/students/{student_id}/topics/{path_id}")
+async def rename_student_topic(
+    student_id: str,
+    path_id: str,
+    body: RenameTopicRequest,
+    _: object = Depends(require_teacher),
+) -> dict:
+    _require_mode()
+    from deeptutor.learning.service import LearningService
+    from deeptutor.services.classroom.assignments import student_context
+
+    record = _live_assignment_or_403("mastery_topic", student_id, path_id)
+    with student_context(student_id):
+        with workspace_context(record["target_workspace_id"] or None):
+            progress = LearningService().rename_path(path_id, body.name)
+    return {"path_id": progress.book_id, "name": progress.name}
+
+
+@router.get("/students/{student_id}/topics/{path_id}/sessions")
+async def list_student_topic_sessions(
+    student_id: str, path_id: str, _: object = Depends(require_teacher)
+) -> dict:
+    _require_mode()
+    from deeptutor.learning.storage import LearningStore
+    from deeptutor.services.classroom.assignments import student_context
+
+    record = _live_assignment_or_403("mastery_topic", student_id, path_id)
+    with student_context(student_id):
+        with workspace_context(record["target_workspace_id"] or None):
+            session_ids = LearningStore().list_session_ids(path_id)
+    return {"session_ids": session_ids}
+
+
+@router.get("/students/{student_id}/sessions/{session_id}")
+async def view_student_session(
+    student_id: str, session_id: str, _: object = Depends(require_teacher)
+) -> dict:
+    """View-only transcript of a session bound to an assigned topic."""
+    _require_mode()
+    from deeptutor.learning.storage import LearningStore
+    from deeptutor.services.classroom.assignments import student_context
+    from deeptutor.services.session.sqlite_store import get_sqlite_session_store_for
+
+    actor = get_current_user().id
+    allowed = None
+    for record in classroom.list_assignments(
+        teacher_id=actor, student_id=student_id, kind="mastery_topic"
+    ):
+        with student_context(student_id):
+            with workspace_context(record["target_workspace_id"] or None):
+                if session_id in LearningStore().list_session_ids(record["target_id"]):
+                    allowed = record
+                    break
+    if allowed is None:
+        raise HTTPException(
+            status_code=403, detail="Only sessions bound to assigned topics are visible."
+        )
+    with student_context(student_id):
+        with workspace_context(allowed["target_workspace_id"] or None):
+            from deeptutor.multi_user.paths import get_current_path_service
+
+            store = get_sqlite_session_store_for(get_current_path_service())
+            payload = await store.get_session_with_messages(session_id)
+    if payload is None:
+        raise HTTPException(status_code=404, detail="Unknown session.")
+    return payload
+
+
+@router.get("/students/{student_id}/question-sets")
+async def list_student_question_sets(student_id: str, _: object = Depends(require_teacher)) -> dict:
+    _require_mode()
+    from deeptutor.services.classroom.assignments import student_context
+    from deeptutor.services.session.sqlite_store import get_sqlite_session_store
+
+    records = classroom.list_assignments(
+        teacher_id=get_current_user().id, student_id=student_id, kind="question_set"
+    )
+    if not records:
+        raise HTTPException(status_code=403, detail="No live assignment grants access.")
+    out = []
+    for record in records:
+        with student_context(student_id):
+            with workspace_context(record["target_workspace_id"] or None):
+                store = get_sqlite_session_store()
+                categories = await store.list_categories()
+                category = next(
+                    (c for c in categories if str(c.get("id")) == record["target_id"]), None
+                )
+                if category is not None:
+                    out.append({"assignment_id": record["id"], "category": category})
+    return {"question_sets": out}
+
+
+@router.get("/students/{student_id}/question-sets/{category_id}/entries")
+async def list_student_set_entries(
+    student_id: str, category_id: int, _: object = Depends(require_teacher)
+) -> dict:
+    _require_mode()
+    from deeptutor.services.classroom.assignments import student_context
+    from deeptutor.services.session.sqlite_store import get_sqlite_session_store
+
+    record = _live_assignment_or_403("question_set", student_id, str(category_id))
+    with student_context(student_id):
+        with workspace_context(record["target_workspace_id"] or None):
+            store = get_sqlite_session_store()
+            listed = await store.list_notebook_entries(category_id=category_id, limit=500)
+    items = listed.get("items", []) if isinstance(listed, dict) else list(listed)
+    return {"entries": items, "total": listed.get("total", len(items)) if isinstance(listed, dict) else len(items)}
+
+
+@router.patch("/students/{student_id}/question-entries/{entry_id}")
+async def patch_student_entry(
+    student_id: str,
+    entry_id: int,
+    body: PatchEntryRequest,
+    _: object = Depends(require_teacher),
+) -> dict:
+    """Edit question/answer/explanation of an assigned copy — never progress."""
+    _require_mode()
+    from deeptutor.services.classroom.assignments import student_context
+    from deeptutor.services.session.sqlite_store import get_sqlite_session_store
+
+    actor = get_current_user().id
+    allowed = None
+    matched = None
+    for record in classroom.list_assignments(
+        teacher_id=actor, student_id=student_id, kind="question_set"
+    ):
+        with student_context(student_id):
+            with workspace_context(record["target_workspace_id"] or None):
+                store = get_sqlite_session_store()
+                listed = await store.list_notebook_entries(
+                    category_id=int(record["target_id"]), limit=500
+                )
+                entries = listed.get("items", []) if isinstance(listed, dict) else list(listed)
+                matched = next((e for e in entries if e.get("id") == entry_id), None)
+                if matched is not None:
+                    allowed = record
+                    break
+    if allowed is None or matched is None:
+        raise HTTPException(status_code=403, detail="No live assignment covers this entry.")
+    # Question content is immutable via update_notebook_entry (learner-state
+    # only); content edits re-upsert under the same origin identity.
+    item = {
+        "question": body.question if body.question is not None else matched.get("question", ""),
+        "question_id": matched.get("question_id", ""),
+        "correct_answer": body.answer if body.answer is not None else matched.get("correct_answer", ""),
+        "explanation": body.explanation if body.explanation is not None else matched.get("explanation", ""),
+        "origin_type": matched.get("origin_type", "external_import"),
+        "origin_ref": matched.get("origin_ref", ""),
+        "turn_id": matched.get("turn_id", ""),
+        "is_correct": bool(matched.get("is_correct")),
+    }
+    with student_context(student_id):
+        with workspace_context(allowed["target_workspace_id"] or None):
+            store = get_sqlite_session_store()
+            count = await store.upsert_notebook_entries(None, [item])
+    if not count:
+        raise HTTPException(status_code=404, detail="Unknown entry.")
+    return {"ok": True}
+
+
+@router.get("/my-assignments")
+async def my_assignments(_: object = Depends(require_auth)) -> dict:
+    _require_mode()
+    user = get_current_user()
+    return {"assignments": classroom.list_assignments(student_id=user.id)}

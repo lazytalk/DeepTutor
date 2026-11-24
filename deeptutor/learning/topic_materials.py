@@ -448,6 +448,22 @@ def build_topic_materials(sources: Iterable[Any]) -> TopicMaterials:
         # readable material would only invite the tutor to "read" it.
         if kind == "goal":
             continue
+        if kind == "text":
+            # Classroom snapshots carry their text inline; no cross-account
+            # resolution happens at turn time.
+            text = str((getattr(source, "metadata", None) or {}).get("text", "") or "")
+            result.materials.append(
+                TopicMaterial(
+                    sid=f"text:{source_id or label}",
+                    kind=kind,
+                    name=label,
+                    full_text=text[: max(0, budget)],
+                    available=bool(text),
+                    note="" if text else "empty snapshot",
+                )
+            )
+            budget = max(0, budget - len(text))
+            continue
         if not available or not source_id:
             result.materials.append(
                 TopicMaterial(

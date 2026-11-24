@@ -18,6 +18,16 @@ from deeptutor.services.workspace.context import (
 from deeptutor.services.workspace.models import WorkspaceError
 
 
+@pytest.fixture(autouse=True)
+def _reset_workspace_scope():
+    yield
+    # _install_request_workspace installs a ContextVar scope; drop it so later
+    # tests in the process never inherit a foreign account root.
+    from deeptutor.services.workspace import context as workspace_context_module
+
+    workspace_context_module._scope.set(None)
+
+
 @pytest.fixture
 def class_workspace(mu_isolated_root, seed_user, as_user):
     seed_user("root", role="admin")  # bootstrap admin so teacher1 keeps its role

@@ -11,14 +11,18 @@ import {
   inviteMember,
   listClasses,
   listMembers,
+  myAssignments,
   myClasses,
   removeMember,
   studentPool,
   updateClass,
+  type Assignment,
   type ClassMember,
   type ClassSummary,
   type PoolStudent,
 } from "../api";
+import { AssignmentBoard } from "./AssignmentBoard";
+import { StudentActivityViewer } from "./StudentActivityViewer";
 
 const panel = "rounded-xl border border-[var(--border)] bg-[var(--secondary)] p-4";
 const input =
@@ -40,12 +44,15 @@ export default function ClassroomConsole() {
   const [studentPassword, setStudentPassword] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [viewerStudent, setViewerStudent] = useState("");
+  const [myAssign, setMyAssign] = useState<Assignment[]>([]);
 
   const reload = useCallback(async () => {
     setError("");
     try {
       setClasses(isTeacher ? await listClasses() : await myClasses());
       if (isTeacher) setPool(await studentPool());
+      else setMyAssign(await myAssignments());
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -245,10 +252,68 @@ export default function ClassroomConsole() {
         </section>
       )}
 
+      {isTeacher && selected && (
+        <>
+          <AssignmentBoard
+            classId={selected.id}
+            workspaceId={selected.workspace_id}
+            members={members}
+          />
+          <section className={panel}>
+            <h2 className="mb-2 text-sm font-medium">{t("Assigned work")}</h2>
+            <select
+              className={input}
+              value={viewerStudent}
+              onChange={(event) => setViewerStudent(event.target.value)}
+            >
+              <option value="">{t("Pick a student")}</option>
+              {members.map((m) => (
+                <option key={m.user_id} value={m.user_id}>
+                  {m.username}
+                </option>
+              ))}
+            </select>
+            {viewerStudent && (
+              <div className="mt-3">
+                <StudentActivityViewer
+                  classId={selected.id}
+                  studentId={viewerStudent}
+                  username={members.find((m) => m.user_id === viewerStudent)?.username ?? viewerStudent}
+                />
+              </div>
+            )}
+          </section>
+        </>
+      )}
+
       {!isTeacher && (
-        <p className="text-sm text-[var(--muted-foreground)]">
-          {t("Read-only class workspace: browsing only.")}
-        </p>
+        <>
+          <section className={panel}>
+            <h2 className="mb-2 text-sm font-medium">{t("My assignments")}</h2>
+            {myAssign.length === 0 && (
+              <p className="text-sm text-[var(--muted-foreground)]">{t("No assignments yet.")}</p>
+            )}
+            <ul className="flex flex-col gap-1">
+              {myAssign.map((a) => (
+                <li key={a.id} className="flex items-center gap-2 text-sm">
+                  <span>
+                    {a.kind === "mastery_topic" ? t("Guided Learning topic") : t("Practice question set")}
+                  </span>
+                  <button
+                    type="button"
+                    className="ml-auto text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                    onClick={() => void selectWorkspace(a.target_workspace_id || "", "/learning")}
+                  >
+                    {t("Open copy")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            {t("Read-only class workspace: browsing only.")}
+          </p>
+        </>
       )}
     </div>
   );

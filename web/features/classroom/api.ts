@@ -79,3 +79,61 @@ export const createStudent = (id: string, username: string, password: string) =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
   }).then((r) => json<{ user_id: string; username: string }>(r));
+
+export interface Assignment {
+  id: string;
+  class_id: string;
+  teacher_id: string;
+  student_id: string;
+  kind: "mastery_topic" | "question_set";
+  source_id: string;
+  target_workspace_id: string;
+  target_id: string;
+  created_at: string;
+  revoked_at: string | null;
+}
+
+export const classAssignments = (id: string) =>
+  apiFetch(`/api/classroom/classes/${id}/assignments`).then((r) => json<{ assignments: Assignment[] }>(r)).then((d) => d.assignments);
+
+export const assign = (id: string, body: { kind: string; source_id: string; student_ids?: string[] }) =>
+  apiFetch(`/api/classroom/classes/${id}/assignments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => json<{ results: { student_id: string; ok: boolean; error?: string }[] }>(r));
+
+export const revokeAssignment = (id: string) =>
+  apiFetch(`/api/classroom/assignments/${id}`, { method: "DELETE" }).then((r) => json<{ assignment: Assignment }>(r));
+
+export const myAssignments = () =>
+  apiFetch("/api/classroom/my-assignments").then((r) => json<{ assignments: Assignment[] }>(r)).then((d) => d.assignments);
+
+export const studentTopic = (sid: string, pid: string) =>
+  apiFetch(`/api/classroom/students/${sid}/topics/${pid}`).then((r) => json<Record<string, unknown>>(r));
+
+export const renameStudentTopic = (sid: string, pid: string, name: string) =>
+  apiFetch(`/api/classroom/students/${sid}/topics/${pid}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  }).then((r) => json<{ path_id: string; name: string }>(r));
+
+export const studentTopicSessions = (sid: string, pid: string) =>
+  apiFetch(`/api/classroom/students/${sid}/topics/${pid}/sessions`).then((r) => json<{ session_ids: string[] }>(r)).then((d) => d.session_ids);
+
+export const studentSession = (sid: string, session_id: string) =>
+  apiFetch(`/api/classroom/students/${sid}/sessions/${session_id}`).then((r) => json<{ messages?: { role?: string; content?: string }[] } & Record<string, unknown>>(r));
+
+export const studentQuestionSets = (sid: string) =>
+  apiFetch(`/api/classroom/students/${sid}/question-sets`).then((r) => json<{ question_sets: { assignment_id: string; category: { id: number; name: string } }[] }>(r)).then((d) => d.question_sets);
+
+export const studentSetEntries = (sid: string, cat: number) =>
+  apiFetch(`/api/classroom/students/${sid}/question-sets/${cat}/entries`).then((r) => json<{ entries: { id: number; question: string; correct_answer: string; explanation: string }[] }>(r)).then((d) => d.entries);
+
+export const patchStudentEntry = (sid: string, entry: number, body: { question?: string; answer?: string; explanation?: string }) =>
+  apiFetch(`/api/classroom/students/${sid}/question-entries/${entry}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => json<{ ok: boolean }>(r));
