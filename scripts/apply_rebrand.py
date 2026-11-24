@@ -94,11 +94,28 @@ TOKEN_FILES = [
 ]
 
 
+def _rename_str(value: str) -> str:
+    """Rename the brand token but never inside URLs (repo links must survive)."""
+    import re
+
+    urls: list[str] = []
+
+    def stash(match):
+        urls.append(match.group(0))
+        return f"\x00URL{len(urls) - 1}\x00"
+
+    protected = re.sub(r"https?://[^\s\"'<>)]+", stash, value)
+    renamed = protected.replace("DeepTutor", BRAND)
+    for index, url in enumerate(urls):
+        renamed = renamed.replace(f"\x00URL{index}\x00", url)
+    return renamed
+
+
 def rename_values(obj, counter):
     if isinstance(obj, str):
         if "DeepTutor" in obj:
             counter[0] += 1
-            return obj.replace("DeepTutor", BRAND)
+            return _rename_str(obj)
         return obj
     if isinstance(obj, dict):
         return {k: rename_values(v, counter) for k, v in obj.items()}
