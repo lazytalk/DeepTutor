@@ -72,11 +72,12 @@ interface NotebookConsoleProps {
 }
 
 /**
- * 收藏夹, as every feature reads: `/notebooks` lists the notebooks, and
- * `/notebooks/<id>` is one of them — 「收藏夹 / its name」 in the page bar,
- * where the name switches to the others. Notebooks are created and edited
- * from the list; the open one can be edited, exported or deleted from its
- * own header.
+ * The saved-records "Notebook" collection, as every feature reads it:
+ * `/notebooks` lists the notebooks, and `/notebooks/<id>` is one of them —
+ * 「Notebook / its name」 in the page bar, where the name switches to the
+ * others. Notebooks are created and edited from the list; the open one can be
+ * edited, exported or deleted from its own header. This is not the Co-Writer
+ * writing canvas (/co-writer); "Favorites" remains its discoverable alias.
  */
 export default function NotebookConsole({
   initialNotebookId,
@@ -260,6 +261,11 @@ function NotebookList({
           </button>
         }
       />
+      {/* The page bar replaces the header title, so the "Favorites" alias
+          needs its own visible line rather than the header description. */}
+      <p className="mb-4 text-[12.5px] leading-relaxed text-[var(--muted-foreground)]">
+        {t("notebooks.favoritesHint")}
+      </p>
       {banner}
       {notebooks.length > 0 && (
         <div className="dt-fav-home-toolbar">

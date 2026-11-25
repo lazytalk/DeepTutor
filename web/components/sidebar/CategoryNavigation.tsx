@@ -48,10 +48,13 @@ const ResourcesNavigation = dynamic(() =>
 
 /**
  * The shelves behind the icon row: Home (the workspace overview), Chat (new
- * conversation + history), Learning, Resources, Task Board and Notebook.
+ * conversation + history), Learning, Resources, Task Board and Co-Writer.
  * Home is the default. Account-level destinations (Calendar, Classroom,
  * Admin) sit above the workspace selector; Settings and Personalization are
  * reached from the account footer and identity row instead of taking a shelf.
+ *
+ * Naming: "Co-Writer" is the writing canvas at /co-writer; a "notebook" is
+ * the saved-records collection at /notebooks that mastery/book sources read.
  */
 export const CATEGORIES = [
   { id: 'home', label: 'navigation.home', icon: HomeShelfIcon, href: '/chat' },
@@ -294,8 +297,8 @@ function TaskBoardNavigation() {
 }
 
 /**
- * Notebook's shelf: the notebook list at /co-writer. It reads the same page
- * list the notebook home does, without the editor's state.
+ * Co-Writer's shelf: the page list at /co-writer. It reads the same page
+ * list the Co-Writer home does, without the editor's state.
  */
 function NotebookNavigation() {
   const { t } = useTranslation()

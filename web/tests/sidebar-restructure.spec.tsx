@@ -174,7 +174,7 @@ it("reveals only the active shelf's sub-menu", async () => {
   expect(screen.queryByRole("button", { name: "starters.explain.1" })).toBeNull();
 
   await pick("navigation.resources");
-  expect(await screen.findByRole("link", { name: "Favorites" })).toBeInTheDocument();
+  expect(await screen.findByRole("link", { name: "Notebook" })).toBeInTheDocument();
   expect(screen.queryByText("Retained session")).toBeNull();
   expect(screen.queryByRole("button", { name: "navigation.newChat" })).toBeNull();
 });
@@ -206,11 +206,11 @@ it("puts new conversation and bound partner chips in Chat, next to history", asy
   fixture.roster = { loading: false, error: false, partners: [] };
 });
 
-it("keeps Resources to its own entries, with no chat history and no Favorites icon", async () => {
+it("keeps Resources to its own entries, with no chat history and no Notebook shelf icon", async () => {
   renderShell();
   await pick("navigation.resources");
 
-  expect(await screen.findByRole("link", { name: "Favorites" })).toBeInTheDocument();
+  expect(await screen.findByRole("link", { name: "Notebook" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Learning journal" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Question Bank" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Knowledge Center" })).toBeInTheDocument();
@@ -219,11 +219,13 @@ it("keeps Resources to its own entries, with no chat history and no Favorites ic
   expect(screen.queryByRole("link", { name: /Chat History/ })).toBeNull();
   expect(screen.queryByRole("link", { name: /navigation.chatRecords/ })).toBeNull();
   expect(document.querySelector('a[href="/space/chat-history"]')).toBeNull();
-  // Favorites may be a sub-menu row, but never an icons-row shelf.
+  // The saved-records Notebook may be a sub-menu row, but never an
+  // icons-row shelf: /co-writer owns that shelf as Co-Writer.
+  expect(screen.queryByRole("tab", { name: /Notebook/ })).toBeNull();
   expect(screen.queryByRole("tab", { name: /Favorites/ })).toBeNull();
 });
 
-it("gives Task Board and Notebook their own shelves", async () => {
+it("gives Task Board and Co-Writer their own shelves", async () => {
   renderShell();
 
   await pick("navigation.taskBoard");

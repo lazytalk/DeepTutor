@@ -46,7 +46,8 @@ export const SPACE_ITEMS: SpaceItem[] = [
   {
     key: "notebooks",
     href: "/notebooks",
-    label: "Notebooks",
+    // The saved-records collection; the writing canvas is Co-Writer.
+    label: "Notebook",
     description:
       "Organize saved outputs from chat, research, Co-Writer, and more.",
     icon: NotebookPen,

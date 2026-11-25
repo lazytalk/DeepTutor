@@ -120,7 +120,7 @@ export function pageSections({
 
 /**
  * Views whose working toolbar carries the location itself — the reader's
- * bar sits over the document column only, the notebook's over the page —
+ * bar sits over the document column only, Co-Writer's over the page —
  * so they draw the same crumbs there (see `useShelfFeature`) instead of
  * under a second bar.
  */

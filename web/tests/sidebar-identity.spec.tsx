@@ -291,7 +291,7 @@ it("shows six shelves, with only the active one printing its name", () => {
   expect(
     [...container.querySelectorAll('[role="tab"]')].map((tab) => tab.textContent),
   ).toEqual(["navigation.home", "", "", "", "", ""]);
-  // Favorites is not an icon — it lives under Resources only.
+  // The saved-records Notebook is not an icon — it lives under Resources only.
   expect(screen.queryByRole("tab", { name: /Favorites/ })).toBeNull();
   // The account shelf is gone.
   expect(container.querySelector(".dt-category-account-divider")).toBeNull();

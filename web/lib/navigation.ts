@@ -38,8 +38,8 @@ export function categoryForPath(pathname: string): NavigationCategory {
   if (pathname === '/chat') return 'home'
   if (pathname.startsWith('/chat/')) return 'chat'
   if (under(pathname, '/kanban')) return 'task_board'
-  // The notebook editor/list is /co-writer; /notebooks is Favorites and is a
-  // Resources sub-menu, not a shelf of its own.
+  // Co-Writer (the writing canvas) is /co-writer; /notebooks is the saved
+  // records "Notebook" collection and lives in Resources, not its own shelf.
   if (under(pathname, '/co-writer')) return 'notebook'
   if (
     pathname === '/learning' ||

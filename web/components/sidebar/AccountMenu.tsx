@@ -46,11 +46,11 @@ export function AccountMenu({ compact = false }: {
   }
 
   return (
+    <Tooltip label={t('navigation.personalization')} side="bottom">
     <Link
       href="/personalization"
       prefetch={false}
       aria-label={username}
-      title={t('navigation.personalization')}
       onClick={() => drawer?.close()}
       className="dt-account-identity"
     >
@@ -64,5 +64,6 @@ export function AccountMenu({ compact = false }: {
       />
       <span className="min-w-0 flex-1 truncate text-left">{username}</span>
     </Link>
+    </Tooltip>
   )
 }

@@ -270,7 +270,9 @@ export default function CoWriterHomePage() {
       />
       <PageHeader
         icon={PenLine}
-        title={t("Learning notebook")}
+        // Co-Writer is the writing canvas; "notebook" names the separate
+        // saved-records collection at /notebooks.
+        title={t("Co-Writer")}
         description={t("Pages for what you are learning — write, link, and study them with Dito.")}
         action={
           <div className="flex shrink-0 items-center gap-2">

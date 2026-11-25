@@ -23,6 +23,8 @@ interface PaletteItem {
   id: string
   label: string
   detail?: string
+  /** Extra search terms that are no longer the visible label. */
+  aliases?: string[]
   icon: ReactNode
   run: () => void
 }
@@ -81,14 +83,28 @@ export function CommandPalette({
     const q = query.trim().toLocaleLowerCase()
     const places: PaletteItem[] = [
       { id: 'new-chat', label: t('navigation.newChat'), icon: glyph(PenLine), run: onNewChat },
-      ...categories.map(item => ({ id: `category:${item.id}`, label: t(item.label), icon: glyph(item.icon), run: go(item.href) })),
+      ...categories.map(item => ({
+        id: `category:${item.id}`,
+        label: t(item.label),
+        // The Co-Writer shelf used to be labelled "Notebook"; keep that
+        // searchable alongside its new name.
+        aliases: item.id === 'notebook' ? ['Notebook'] : undefined,
+        icon: glyph(item.icon),
+        run: go(item.href),
+      })),
       ...[
         { href: '/calendar', label: 'Calendar', icon: CalendarDays },
               { href: '/kanban', label: 'Task Board', icon: Columns3 },
-        { href: '/co-writer', label: 'Co-Writer', icon: PenLine },
+        { href: '/co-writer', label: 'Co-Writer', aliases: ['Notebook'], icon: PenLine },
       ]
         .filter(item => navVisibleUnderPolicy(item.href, allowedSurfaces))
-        .map(item => ({ id: item.href, label: t(item.label), icon: glyph(item.icon), run: go(item.href) })),
+        .map(item => ({
+          id: item.href,
+          label: t(item.label),
+          aliases: 'aliases' in item ? item.aliases : undefined,
+          icon: glyph(item.icon),
+          run: go(item.href),
+        })),
       ...[
         { groups: DASHBOARD_GROUPS, detail: t('navigation.resources') },
         { groups: PERSONALIZATION_GROUPS, detail: t('navigation.personalization') },
@@ -99,6 +115,12 @@ export function CommandPalette({
             .map(row => ({
               id: `resource:${row.key}`,
               label: zh ? row.title.zh : t(row.title.en),
+              // /notebooks used to be labelled "Favorites"; the alias keeps
+              // that search term working.
+              aliases:
+                row.key === 'notebooks'
+                  ? [t('Favorites'), 'Favorites']
+                  : undefined,
               detail,
               icon: glyph(row.icon),
               run: go(row.href),
@@ -170,7 +192,16 @@ export function CommandPalette({
       })),
     ]
     const pick = (items: PaletteItem[], idle: number) =>
-      q ? items.filter(item => includes(`${item.label} ${item.detail ?? ''}`, q)).slice(0, 6) : items.slice(0, idle)
+      q
+        ? items
+            .filter(item =>
+              includes(
+                `${item.label} ${item.detail ?? ''} ${item.aliases?.join(' ') ?? ''}`,
+                q,
+              ),
+            )
+            .slice(0, 6)
+        : items.slice(0, idle)
     return [
       { title: t('navigation.jumpTo'), items: pick(places, 1 + categories.length + 2) },
       { title: t('Conversations'), items: pick(conversations, 5) },

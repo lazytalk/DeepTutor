@@ -158,7 +158,7 @@ const SPACE_CATEGORIES: Record<string, SpaceCategoryDef> = {
   notebooks: {
     key: "notebooks",
     href: "/notebooks",
-    label: "Notebooks",
+    label: "Notebook",
     icon: NotebookPen,
   },
   question_bank: {

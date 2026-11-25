@@ -148,7 +148,7 @@ export function SourcesStep({
   }
   const groups = [
     { key: 'knowledgeBases', label: 'Knowledge bases', icon: Database },
-    { key: 'notebooks', label: 'Notebooks', icon: Notebook },
+    { key: 'notebooks', label: 'Notebook', icon: Notebook },
     { key: 'books', label: 'Books', icon: BookOpen },
     { key: 'questionSets', label: 'Question bank', icon: ListChecks },
     { key: 'chats', label: 'Conversations', icon: MessagesSquare },

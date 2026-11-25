@@ -105,7 +105,10 @@ export const DASHBOARD_GROUPS: DashboardGroup[] = [
         key: "notebooks",
         href: "/notebooks",
         icon: Bookmark,
-        title: { zh: "收藏夹", en: "Favorites" },
+        // "Notebook" is the saved-records collection that mastery/book sources
+        // read. The writing canvas is Co-Writer (/co-writer). "Favorites"
+        // remains a discoverable alias (see the /notebooks page subtitle).
+        title: { zh: "笔记本", en: "Notebook" },
         blurb: {
           zh: "收藏对话和资料的原文，随时引用到笔记本。",
           en: "Keep original conversations and sources, ready to use in your notes.",

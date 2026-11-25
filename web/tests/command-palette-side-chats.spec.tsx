@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
+import { PenLine } from "lucide-react";
 
 import { CommandPalette } from "@/components/sidebar/CommandPalette";
 import { initI18n } from "@/i18n/init";
@@ -64,4 +65,30 @@ it("finds a Little Tutor thread from another conversation", () => {
   expect(screen.getByText("Little Tutor")).toBeTruthy();
   expect(screen.getByText("Why fork returns twice")).toBeTruthy();
   expect(screen.getAllByText("Fork and exec").length).toBeGreaterThan(0);
+});
+
+it("keeps the Favorites alias for /notebooks and the Notebook alias for Co-Writer searchable", () => {
+  render(
+    <CommandPalette
+      open
+      onClose={vi.fn()}
+      categories={[
+        { id: "notebook", label: "navigation.notebook", href: "/co-writer", icon: PenLine },
+      ]}
+      allowedSurfaces={null}
+      sessions={[]}
+      onSelectSession={vi.fn()}
+      onNewChat={vi.fn()}
+    />,
+  );
+
+  const input = screen.getByRole("combobox");
+  fireEvent.change(input, { target: { value: "Favorites" } });
+  expect(screen.getByRole("option", { name: /Notebook/ })).toBeTruthy();
+  expect(screen.queryByRole("option", { name: /Co-Writer/ })).toBeNull();
+
+  fireEvent.change(input, { target: { value: "Notebook" } });
+  const names = screen.getAllByRole("option").map(option => option.textContent);
+  expect(names.some(name => name?.includes("Co-Writer"))).toBe(true);
+  expect(names.some(name => name?.includes("Notebook"))).toBe(true);
 });
