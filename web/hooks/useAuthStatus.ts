@@ -19,6 +19,10 @@ export interface AuthStatusState {
   role: string | null;
   /** Stable account id for account-scoped browser state. */
   userId: string | null;
+  /** Signed-in account name; null when auth is off or the fetch has not landed. */
+  username: string | null;
+  /** Avatar marker (see lib/avatar.ts); empty string until one is chosen. */
+  avatar: string;
   /** False when the runtime status endpoint could not be reached. */
   statusAvailable: boolean;
   /** True until the first status fetch resolves. */
@@ -37,6 +41,8 @@ const INITIAL: AuthStatusState = {
   isAdmin: false,
   role: null,
   userId: null,
+  username: null,
+  avatar: "",
   statusAvailable: false,
   loading: true,
   learningPolicy: null,
@@ -73,6 +79,11 @@ function loadAuthStatus(): Promise<AuthStatusState> {
       typeof status?.user_id === "string" && status.user_id.trim()
         ? status.user_id
         : null,
+    username:
+      typeof status?.username === "string" && status.username.trim()
+        ? status.username
+        : null,
+    avatar: typeof status?.avatar === "string" ? status.avatar : "",
     statusAvailable: status !== null,
     loading: false,
     learningPolicy: learningPolicyFromStatus(status),

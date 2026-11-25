@@ -49,10 +49,14 @@ export function PersonalizationNavigation({ allowedSurfaces }: { allowedSurfaces
     ...group,
     items: group.items.filter(item => item.href !== '/agents' || navVisibleUnderPolicy(item.href, allowedSurfaces)),
   }))
+  // The account group (profile + password) leads, with its own heading, so
+  // "you" stays discoverable now that there is no account dropdown.
+  const [account, ...rest] = groups
   return (
     <>
       <OverviewRow href="/personalization" label={t('navigation.allPersonalization')} icon={PersonalizationShelfIcon} />
-      <Shelf groups={groups} titled={false} />
+      <Shelf groups={[account]} titled />
+      <Shelf groups={rest} titled={false} />
     </>
   )
 }

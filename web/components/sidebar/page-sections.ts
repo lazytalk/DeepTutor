@@ -66,8 +66,9 @@ export function pageSections({
       icon: HomeShelfIcon,
       pages: [
         { href: '/chat', label: t('Chat'), icon: MessageCircle },
-        // Account-level like Chat: a class spans workspaces, so the classroom
-        // leads the shelf instead of sitting among its workspace tools.
+        // Account-level entries stay in the page tree so their pages keep
+        // breadcrumbs, but the sidebar surfaces them outside the workspace
+        // shelf: Classroom first-level, Calendar in the account shelf.
         { href: '/classroom', label: t('Classroom'), icon: School, account: true },
         { href: '/calendar', label: t('Calendar'), icon: CalendarDays, account: true },
         { href: '/kanban', label: t('Task Board'), icon: Columns3 },
@@ -163,7 +164,12 @@ const EVERY_PAGE = pageSections({ t: key => key, zh: false, allowedSurfaces: nul
  */
 export function switchDestination(pathname: string): string {
   // The account's own pages are the same on both sides of a switch.
-  if (['partners', 'personalization'].includes(categoryForPath(pathname))) return pathname
+  if (
+    ['partners', 'settings', 'calendar', 'personalization', 'admin'].includes(
+      categoryForPath(pathname),
+    )
+  )
+    return pathname
   if (EVERY_PAGE.some(section => section.pages.some(page => page.href === pathname))) return pathname
   const owner = ownerOf(pathname, EVERY_PAGE, true)
   if (owner) return owner.page.href

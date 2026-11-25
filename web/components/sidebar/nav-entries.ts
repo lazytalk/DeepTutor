@@ -30,6 +30,8 @@ export interface NavEntry {
   surfaces?: readonly string[]
   /** Account roles that may see this entry (classroom fork feature). */
   roles?: readonly string[]
+  /** Account-level: the same in every workspace (classroom fork feature). */
+  account?: boolean
 }
 
 /**
@@ -97,6 +99,9 @@ export const PRIMARY_NAV: NavEntry[] = [
     tooltipKey: 'Classroom tooltip',
     surfaces: ['chat'],
     roles: ['admin', 'teacher', 'student'],
+    // A class spans workspaces; the sidebar shows it first-level, above the
+    // workspace/account shelf divider.
+    account: true,
   },
 ]
 

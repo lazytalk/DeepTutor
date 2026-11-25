@@ -19,6 +19,13 @@ import { formatRelativeTime } from "@/lib/relative-time";
 import ChannelIcon from "@/components/partners/ChannelIcon";
 import { useDiscussionModeLabel } from "@/components/partners/group/DiscussionModePicker";
 import PartnerAvatar from "@/components/partners/PartnerAvatar";
+import { useActiveWorkspaceId } from "@/hooks/useActiveWorkspaceId";
+import {
+  defaultPartnerWorkspaceBucket,
+  groupPartnersByWorkspace,
+  partnersInBucket,
+  type PartnerWorkspaceBucket,
+} from "@/lib/partner-workspace-bindings";
 
 function channelNames(partner: PartnerInfo): string[] {
   if (Array.isArray(partner.channels)) {
@@ -38,6 +45,30 @@ export default function PartnersPage() {
   const [partners, setPartners] = useState<PartnerInfo[]>([]);
   const [groups, setGroups] = useState<PartnerGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  // Partners follow a content workspace when their config names one. The
+  // directory defaults to the tab's workspace, but account-level browsing is
+  // one click away (All partners, or either of the other two buckets).
+  const activeWorkspaceId = useActiveWorkspaceId();
+  // Remember which workspace a chosen bucket belongs to, so switching scope
+  // starts from the new workspace's default instead of carrying a stale one.
+  const [bucketChoice, setBucketChoice] = useState<{
+    workspaceId: string;
+    bucket: PartnerWorkspaceBucket;
+  } | null>(null);
+  const groupsByWorkspace = groupPartnersByWorkspace(partners, activeWorkspaceId);
+  const bucket =
+    bucketChoice?.workspaceId === activeWorkspaceId
+      ? bucketChoice.bucket
+      : defaultPartnerWorkspaceBucket(activeWorkspaceId);
+  const visiblePartners = partnersInBucket(partners, groupsByWorkspace, bucket);
+  const bucketTabs: { id: PartnerWorkspaceBucket; label: string; count: number }[] = [
+    ...(activeWorkspaceId
+      ? [{ id: "this" as const, label: t("This workspace"), count: groupsByWorkspace.here.length }]
+      : []),
+    { id: "other", label: t("Other workspaces"), count: groupsByWorkspace.other.length },
+    { id: "unbound", label: t("Unbound"), count: groupsByWorkspace.unbound.length },
+    { id: "all", label: t("All partners"), count: partners.length },
+  ];
   const anyAssigned = partners.some((partner) => partner.can_manage === false);
   // A group needs at least two members, so the entry point stays inert until
   // there is something to convene.
@@ -120,8 +151,41 @@ export default function PartnersPage() {
           </Link>
         </div>
       ) : (
+        <>
+          <div
+            role="group"
+            aria-label={t("Partners in this workspace")}
+            className="mb-5 flex flex-wrap items-center gap-2"
+          >
+            {bucketTabs.map((tab) => {
+              const selected = bucket === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() =>
+                    setBucketChoice({ workspaceId: activeWorkspaceId, bucket: tab.id })
+                  }
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                    selected
+                      ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)]"
+                      : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--ring)] hover:text-[var(--foreground)]"
+                  }`}
+                >
+                  {tab.label}
+                  <span className="tabular-nums opacity-60">{tab.count}</span>
+                </button>
+              );
+            })}
+          </div>
+          {visiblePartners.length === 0 ? (
+            <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-[var(--border)] px-4 text-center text-[12.5px] text-[var(--muted-foreground)]">
+              {t("navigation.noResults")}
+            </div>
+          ) : (
         <div className={pageGridClass(2)}>
-          {partners.map((partner) => {
+          {visiblePartners.map((partner) => {
             const channels = channelNames(partner);
             return (
               <Link
@@ -183,6 +247,8 @@ export default function PartnersPage() {
             );
           })}
         </div>
+          )}
+        </>
       )}
 
       {!loading && partners.length > 0 ? (

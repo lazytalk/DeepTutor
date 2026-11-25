@@ -24,7 +24,6 @@ import { useChatWorkspaces } from "@/hooks/useChatWorkspaces";
 import SessionList from "@/components/SessionList";
 import { useSidebarDrawer } from "@/components/layout/AppShell";
 import { useDevice } from "@/hooks/useDevice";
-import { VersionBadge } from "@/components/sidebar/VersionBadge";
 import type {
   SessionOrganizationPatch,
   SessionSummary,
@@ -241,7 +240,6 @@ export function ClassicSidebarShell({
             );
           })}
           {renderedFooter}
-          <VersionBadge onNavigate={closeDrawerOnNav} />
         </div>
       </aside>
     );
@@ -374,7 +372,6 @@ export function ClassicSidebarShell({
               </Link>
             );
           })}
-          <VersionBadge onNavigate={closeDrawerOnNav} />
         </div>
       </div>
       {!isMobile && (

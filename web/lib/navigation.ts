@@ -1,10 +1,21 @@
 /** Product grouping only. Existing URLs and persisted records remain authoritative. */
 import type { SessionSummary } from '@/lib/session-api'
 import { sessionRoute } from '@/lib/mastery-session'
-export type NavigationCategory = 'home' | 'learning' | 'resources' | 'partners' | 'personalization'
+export type NavigationCategory =
+  | 'home'
+  | 'learning'
+  | 'resources'
+  | 'partners'
+  | 'settings'
+  | 'calendar'
+  | 'personalization'
+  | 'admin'
 /** Account-level places: the same in every workspace. */
 export const PERSONALIZATION_ROOTS = [
   '/personalization',
+  // The profile lives inside the personalization hub: it is the "you" half
+  // of "you + your AI", so the shelf stays selected while editing it.
+  '/profile',
   '/agents',
   '/space/personas',
   '/space/skills',
@@ -15,6 +26,9 @@ export const PERSONALIZATION_ROOTS = [
 const under = (pathname: string, root: string) => pathname === root || pathname.startsWith(`${root}/`)
 export function categoryForPath(pathname: string): NavigationCategory {
   if (under(pathname, '/partners')) return 'partners'
+  if (under(pathname, '/settings')) return 'settings'
+  if (under(pathname, '/calendar')) return 'calendar'
+  if (under(pathname, '/admin')) return 'admin'
   if (PERSONALIZATION_ROOTS.some(root => under(pathname, root))) return 'personalization'
   if (
     pathname === '/learning' ||

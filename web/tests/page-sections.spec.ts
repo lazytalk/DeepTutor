@@ -12,8 +12,15 @@ describe('page sections', () => {
     // Account-level pages are the same in every workspace, so show no workspace.
     expect(locatePage('/partners', sections())?.page.account).toBe(true)
     expect(locatePage('/memory', sections())?.page.account).toBe(true)
+    expect(locatePage('/classroom', sections())?.page.account).toBe(true)
+    expect(locatePage('/calendar', sections())?.page.account).toBe(true)
     expect(locatePage('/kanban', sections())?.page.account).toBeUndefined()
     expect(locatePage('/space', sections())?.page.account).toBeUndefined()
+    // Classroom is a first-level destination, listed exactly once.
+    const classroomPages = sections().flatMap(section =>
+      section.pages.filter(page => page.href === '/classroom'),
+    )
+    expect(classroomPages).toHaveLength(1)
   })
 
   it('places workspace detail views under their index page', () => {

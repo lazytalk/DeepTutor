@@ -16,9 +16,11 @@ import {
   type CSSProperties,
 } from "react";
 import { useAppShell } from "@/context/AppShellContext";
-import { ChevronsLeft, ChevronsRight, PanelLeftClose, Search, SquarePen } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, LogOut, PanelLeftClose, Search, SquarePen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useChatWorkspaces } from "@/hooks/useChatWorkspaces";
+import { useAuthStatus } from "@/hooks/useAuthStatus";
+import { logout } from "@/lib/auth";
 
 import { useSidebarDrawer } from "@/components/layout/AppShell";
 import { useDevice } from "@/hooks/useDevice";
@@ -30,9 +32,15 @@ import type { MasteryTopicLabel } from "@/lib/learning-api";
 import { isNoteSession } from "@/lib/mastery-session";
 import type { ReadingCollectionLabel } from "@/lib/reading-workspace-api";
 import { useSidebarResize } from "@/hooks/useSidebarResize";
-import { CategoryBody, CategoryTabs, useCategoryNavigation } from "@/components/sidebar/CategoryNavigation";
+import {
+  CategoryBody,
+  CategoryTabs,
+  PrimaryDestinations,
+  useCategoryNavigation,
+} from "@/components/sidebar/CategoryNavigation";
 import { isLearningSession } from "@/lib/navigation";
 import Tooltip from "@/shared/ui/Tooltip";
+import { AccountMenu } from "@/components/sidebar/AccountMenu";
 import { WorkspaceMenu } from "@/components/sidebar/WorkspaceMenu";
 import { SHORTCUTS, matchesShortcut } from "@/lib/shortcuts";
 import { RecordHeader, useRecordView } from "@/components/sidebar/RecordList";
@@ -65,6 +73,41 @@ const OrganizedSessionList = dynamic(
     ),
   },
 );
+
+/**
+ * Sign out lives at the foot of the sidebar, not behind a menu. It stays put
+ * in the rail (icon + tooltip) and the expanded sidebar (icon + label).
+ */
+export function SidebarSignOut({ compact = false }: { compact?: boolean }) {
+  const { t } = useTranslation()
+  const router = useRouter()
+  const { enabled, authenticated } = useAuthStatus()
+  if (!enabled || !authenticated) return null
+  const signOut = async () => {
+    await logout()
+    router.replace('/login')
+  }
+  if (compact) {
+    return (
+      <Tooltip label={t('Sign out')} side="right">
+        <button
+          type="button"
+          onClick={() => void signOut()}
+          aria-label={t('Sign out')}
+          className="dt-nav-icon"
+        >
+          <LogOut size={17} strokeWidth={1.6} />
+        </button>
+      </Tooltip>
+    )
+  }
+  return (
+    <button type="button" onClick={() => void signOut()} className="dt-sidebar-signout">
+      <LogOut size={15} strokeWidth={1.7} />
+      <span>{t('Sign out')}</span>
+    </button>
+  )
+}
 
 export interface SidebarShellProps {
   /** Reuse the shell's resizing/collapse behavior with embedded navigation. */
@@ -120,7 +163,6 @@ export function SidebarShell({
   masteryTopics = [],
   readingCollections = [],
   onOrganizeSession,
-  footerSlot,
 }: SidebarShellProps) {
   const categoryNav = useCategoryNavigation();
   const router = useRouter();
@@ -139,10 +181,6 @@ export function SidebarShell({
   const collapsed = sidebarCollapsed && !isMobile;
   const resize = useSidebarResize(collapsed || isMobile, initialWidth, widthStorageKey);
 
-  // The account links live in the workspace menu, which always shows them in
-  // full, open sidebar or rail.
-  const renderedFooter =
-    typeof footerSlot === "function" ? footerSlot(false) : footerSlot;
   // Conversations read like the learning and partner records: by day, in
   // the order the learner picked, searchable in place.
   const chatView = useRecordView("deeptutor.navigation.chats.sort");
@@ -301,14 +339,18 @@ export function SidebarShell({
   if (collapsed) {
     return (
       <aside className={`${bodySlot ? "" : "dt-product-sidebar"} dt-rail relative flex h-dvh w-[60px] shrink-0 flex-col items-center bg-[var(--secondary)] py-3 transition-all duration-200`}>
-        {/* The open sidebar's header, stood on end: the workspace (with its
-            menu of settings and account), the way back out, then search. */}
+        {/* The open sidebar's header, stood on end: the account, then the
+            workspace, then the way back out and search. */}
         {bodySlot ? (
           <Link href={brandHref} prefetch={false} aria-label="Kaiwen Crane Tutor" className="dt-rail-brand">
             <Image src="/brand/color-logo.png" alt="Kaiwen Crane Tutor" width={22} height={22} className="h-[22px] w-[22px] rounded-md" />
           </Link>
         ) : (
-          <WorkspaceMenu compact accountSlot={renderedFooter} onNavigate={() => drawer?.close()} />
+          <>
+            <AccountMenu compact />
+            <WorkspaceMenu compact onNavigate={() => drawer?.close()} />
+            <PrimaryDestinations collapsed />
+          </>
         )}
         <Tooltip label={t("Expand sidebar")} side="right">
           <button
@@ -340,15 +382,16 @@ export function SidebarShell({
           {bodySlot ? bodySlot(true) : <CategoryBody nav={categoryNav} collapsed sessions={null} />}
         </div>
 
-        {footerOverride ? footerOverride(true) : (
-          <div className="dt-rail-foot">
+        <div className="dt-rail-foot">
+          {footerOverride ? footerOverride(true) : (
             <Tooltip label={t("navigation.newChat")} side="right" shortcut={SHORTCUTS.newChat}>
               <Link prefetch={false} href="/chat" onClick={handleHomeClick} aria-label={t("navigation.newChat")} className="dt-nav-icon">
                 <SquarePen size={17} strokeWidth={1.6} />
               </Link>
             </Tooltip>
-          </div>
-        )}
+          )}
+          <SidebarSignOut compact />
+        </div>
         {palette}
       </aside>
     );
@@ -391,32 +434,37 @@ export function SidebarShell({
         </div>
       ) : (
         <div className="dt-sidebar-header">
-          <WorkspaceMenu accountSlot={renderedFooter} onNavigate={() => drawer?.close()} />
-          <Tooltip label={t("navigation.search")} side="bottom" shortcut={SHORTCUTS.search}>
-            <button
-              type="button"
-              className="dt-nav-icon dt-sidebar-search"
-              aria-label={t("navigation.search")}
-              aria-haspopup="dialog"
-              onClick={() => setPaletteOpen(true)}
-            >
-              <Search size={16} strokeWidth={1.7} />
-            </button>
-          </Tooltip>
-          {/* The rail is a desktop affordance; in the drawer the scrim and the
-              top-bar toggle already own "make this go away". */}
-          <Tooltip label={t("Collapse sidebar")} side="bottom">
-            <button
-              type="button"
-              onClick={() => setCollapsed(true)}
-              className="dt-nav-icon max-md:hidden"
-              aria-label={t("Collapse sidebar")}
-            >
-              <ChevronsLeft size={17} strokeWidth={1.6} />
-            </button>
-          </Tooltip>
+          <div className="dt-sidebar-account-row">
+            <AccountMenu />
+            <Tooltip label={t("navigation.search")} side="bottom" shortcut={SHORTCUTS.search}>
+              <button
+                type="button"
+                className="dt-nav-icon dt-sidebar-search"
+                aria-label={t("navigation.search")}
+                aria-haspopup="dialog"
+                onClick={() => setPaletteOpen(true)}
+              >
+                <Search size={16} strokeWidth={1.7} />
+              </button>
+            </Tooltip>
+            {/* The rail is a desktop affordance; in the drawer the scrim and the
+                top-bar toggle already own "make this go away". */}
+            <Tooltip label={t("Collapse sidebar")} side="bottom">
+              <button
+                type="button"
+                onClick={() => setCollapsed(true)}
+                className="dt-nav-icon max-md:hidden"
+                aria-label={t("Collapse sidebar")}
+              >
+                <ChevronsLeft size={17} strokeWidth={1.6} />
+              </button>
+            </Tooltip>
+          </div>
+          <WorkspaceMenu onNavigate={() => drawer?.close()} />
         </div>
       )}
+
+      {!bodySlot && <PrimaryDestinations collapsed={false} />}
 
       {homeSlot ? homeSlot(false) : <CategoryTabs nav={categoryNav} collapsed={false} />}
 
@@ -431,16 +479,19 @@ export function SidebarShell({
       </div>
 
       {/* Secondary nav + footer */}
-      {footerOverride ? footerOverride(false) : (
-        <div className="dt-sidebar-footer">
+      <div className="dt-sidebar-footer">
+        {footerOverride ? footerOverride(false) : (
           <Tooltip label={t("navigation.newChat")} side="top" shortcut={SHORTCUTS.newChat} as="div" className="block w-full">
             <Link prefetch={false} href="/chat" onClick={handleHomeClick} className="dt-new-conversation">
               <SquarePen size={16} strokeWidth={1.7} />
               <span>{t("navigation.newChat")}</span>
             </Link>
           </Tooltip>
+        )}
+        <div className="dt-sidebar-footer-account">
+          <SidebarSignOut />
         </div>
-      )}
+      </div>
       {!isMobile && (
         <div
           role="separator"

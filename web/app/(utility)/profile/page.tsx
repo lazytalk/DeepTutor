@@ -5,9 +5,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createElement } from "react";
-import { ArrowLeft, ImageUp, KeyRound, Lock, LogOut, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, ImageUp, KeyRound, Lock, ShieldCheck, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { fetchAuthStatus, logout } from "@/lib/auth";
+import { fetchAuthStatus } from "@/lib/auth";
 import {
   changeOwnPassword,
   getProfile,
@@ -187,11 +187,6 @@ export default function ProfilePage() {
       setBusy(false);
     }
   }, []);
-
-  const handleSignOut = useCallback(async () => {
-    await logout();
-    router.replace("/login");
-  }, [router]);
 
   const handleChangePassword = useCallback(async () => {
     setPasswordNotice(null);
@@ -501,27 +496,7 @@ export default function ProfilePage() {
               </div>
             </div>}
 
-            {/* Sign out card */}
-            <div className="mt-4 flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
-              <div>
-                <h2 className="text-sm font-semibold text-[var(--foreground)]">
-                  {t("Sign out")}
-                </h2>
-                <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
-                  {t("End your session on this device")}
-                </p>
-              </div>
-              <button
-                onClick={() => void handleSignOut()}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm
-                           border border-red-500/40 text-red-600 dark:text-red-400
-                           hover:bg-red-500/10 transition-colors"
-              >
-                <LogOut size={14} />
-                {t("Sign out")}
-              </button>
-            </div>
-          </>
+            </>
         )}
     </FeaturePage>
   );

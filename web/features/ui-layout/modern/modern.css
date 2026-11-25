@@ -92,32 +92,26 @@
 .dt-category-bar:not(.is-collapsed) :has(> [role="tab"].is-active) { min-width: 0; }
 .dt-category-bar [role="tab"].is-active > span:not(.dt-category-pill) { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .dt-category-pill { position: absolute; inset: 0; border-radius: var(--dt-nav-radius); background: var(--accent); }
-/* Workspace shelves | account shelves. */
-.dt-category-divider { flex: none; width: 1px; height: 14px; margin: 0 4px; background: color-mix(in srgb, var(--border) 85%, transparent); }
-.dt-category-bar.is-collapsed .dt-category-divider { width: 18px; height: 1px; margin: 2px auto; }
+/* This workspace's shelves | the account's shelves. The open bar wraps: a
+   full-width rule, then a quiet label and the account's two marks, so the
+   grouping reads without hovering anything. */
+.dt-category-bar:not(.is-collapsed) [role="tablist"] { flex-wrap: wrap; row-gap: 3px; }
+.dt-category-account-divider { flex: 0 0 100%; height: 1px; margin: 4px 0 2px; background: color-mix(in srgb, var(--border) 85%, transparent); }
+.dt-category-account-label { flex: 1 1 auto; min-width: 0; align-self: center; padding: 0 6px 0 8px; overflow: hidden; font-size: 10.5px; font-weight: 500; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; color: var(--muted-foreground); }
+.dt-category-bar.is-collapsed .dt-category-account-divider { flex: none; width: 18px; height: 1px; margin: 2px auto; }
+.dt-category-bar.is-collapsed .dt-category-account-label { display: none; }
 /* The selected shelf's mark fills in, so selection reads in the glyph too. */
 .dt-shelf-fill { fill: transparent; transition: fill 180ms var(--dt-ease); }
 /* Two-tone composer marks: a wash of the line colour for the body, solid for the spark. */
 .dt-duo { fill: currentColor; fill-opacity: 0.16; }
 .dt-duo-solid { fill: currentColor; }
 .dt-category-bar [role="tab"].is-active .dt-shelf-fill { fill: color-mix(in srgb, currentColor 16%, transparent); }
-/* The account's pair folds small while the workspace is in use and opens
-   under the pointer or focus. */
-.dt-account-tabs { display: flex; align-items: center; gap: 1px; flex: 0 1 auto; min-width: 0; }
-.dt-category-bar.is-collapsed .dt-account-tabs { flex-direction: column; gap: 5px; }
-.dt-account-tabs [role="tab"] { transition: padding 240ms var(--dt-ease), margin 240ms var(--dt-ease), opacity 200ms, color 140ms, background-color 140ms; }
-.dt-account-tabs [role="tab"] > svg { transition: transform 240ms var(--dt-ease); }
-/* Folded, the pair stacks: the first mark in front, wearing a halo in the
-   sidebar's own colour, the second peeking out from behind it. */
-.dt-account-tabs.is-tucked [role="tab"] { min-width: 0; padding: 0 6px; }
-.dt-account-tabs.is-tucked > :first-child { position: relative; z-index: 2; }
-.dt-account-tabs.is-tucked > :first-child [role="tab"] > svg { filter: drop-shadow(1.5px 0 0 var(--secondary)) drop-shadow(1.5px 1px 0 var(--secondary)); }
-.dt-account-tabs.is-tucked > :last-child [role="tab"] { margin-left: -23px; padding-left: 0; opacity: .5; }
-.dt-account-tabs.is-tucked > :last-child [role="tab"] > svg { transform: translateX(10px) scale(.86); }
-.dt-account-tabs.is-tucked:hover [role="tab"] { opacity: 1; }
-/* The account's half sits at the far end of the bar. */
-.dt-category-bar:not(.is-collapsed) .dt-category-divider { margin-left: auto; }
-@media (prefers-reduced-motion: reduce) { .dt-account-tabs [role="tab"], .dt-account-tabs [role="tab"] > svg { transition: none; } }
+/* The account's shelves keep their marks visible beside the label; only the
+   selected one prints its name (and truncates if the rail is narrow). */
+.dt-category-bar [role="tab"].is-account { flex: 0 0 32px; width: 32px; padding: 0; }
+.dt-category-bar [role="tab"].is-account > span:not(.dt-category-pill) { display: none; }
+.dt-category-bar [role="tab"].is-account.is-active { flex: 0 1 auto; width: auto; padding: 0 8px; }
+.dt-category-bar [role="tab"].is-account.is-active > span:not(.dt-category-pill) { display: inline; }
 .dt-category-bar [role="tab"]:not(.is-active):hover, .dt-nav-icon:hover { background: var(--accent); color: var(--foreground); }
 .dt-nav-icon { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: var(--dt-nav-radius); color: var(--muted-foreground); transition: background-color 140ms, color 140ms; }
 .dt-category-bar button:focus-visible, .dt-navigation-row:focus-visible, .dt-nav-icon:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
@@ -252,13 +246,37 @@ button.dt-record-toggle:focus-visible { outline: 2px solid var(--ring); outline-
 .dt-record-question.is-active { font-weight: 500; }
 .dt-record-question:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
 
-/* ---- Sidebar header: the workspace menu ------------------------------ */
-.dt-sidebar-header { display: flex; align-items: center; gap: 4px; height: 52px; padding: 0 8px; flex-shrink: 0; }
-.dt-sidebar-header > .dt-nav-icon { opacity: 0; transition: opacity 140ms, background-color 140ms, color 140ms; }
-.dt-product-sidebar:hover .dt-sidebar-header > .dt-nav-icon,
-.dt-sidebar-header > .dt-nav-icon:focus-visible { opacity: 1; }
+/* ---- Sidebar header: account row, then workspace row ----------------- */
+.dt-sidebar-header { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px 4px; flex-shrink: 0; }
+.dt-sidebar-account-row { display: flex; align-items: center; gap: 4px; width: 100%; }
+.dt-sidebar-account-row > .dt-nav-icon { opacity: 0; transition: opacity 140ms, background-color 140ms, color 140ms; }
+.dt-product-sidebar:hover .dt-sidebar-account-row > .dt-nav-icon,
+.dt-sidebar-account-row > .dt-nav-icon:focus-visible { opacity: 1; }
 .dt-sidebar-header .dt-sidebar-search { opacity: 1; }
-.dt-workspace-menu { position: relative; flex: 1; min-width: 0; }
+.dt-account-menu { position: relative; flex: 1; min-width: 0; }
+/* The account row is an identity display; Settings/Admin/Profile are their
+   own destinations and Sign out sits in the footer. */
+.dt-account-identity { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; height: 34px; padding: 0 8px; border-radius: var(--dt-radius-md); font-size: 13px; font-weight: 500; color: var(--muted-foreground); }
+.dt-account-identity.is-rail { flex: none; justify-content: center; width: 36px; height: 36px; padding: 0; }
+/* First-level account destinations: above the shelf bar, outside both halves. */
+.dt-primary-nav { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; padding: 2px 8px 6px; border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent); }
+.dt-primary-nav.is-rail { align-items: center; gap: 4px; padding: 4px 0; }
+.dt-sidebar-footer-account { display: flex; justify-content: flex-start; margin-top: 6px; }
+.dt-sidebar-signout { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: var(--dt-radius-md); font-size: 12.5px; color: var(--muted-foreground); transition: background-color 140ms, color 140ms; }
+.dt-sidebar-signout:hover { background: var(--accent); color: var(--foreground); }
+.dt-sidebar-signout:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.dt-account-trigger { display: flex; align-items: center; gap: 8px; width: 100%; height: 34px; padding: 0 8px; border-radius: var(--dt-radius-md); font-size: 13px; font-weight: 500; color: var(--muted-foreground); transition: background-color 140ms, color 140ms; }
+.dt-account-trigger:hover, .dt-account-trigger[aria-expanded="true"] { background: var(--accent); color: var(--foreground); }
+.dt-account-trigger:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+.dt-account-panel { width: max(100%, 220px); }
+.dt-workspace-menu { position: relative; flex: 1; width: 100%; min-width: 0; }
+/* The workspace row splits: the glyph+name goes to that workspace's Chat,
+   the chevron opens the switcher. */
+.dt-workspace-control { display: flex; align-items: center; gap: 2px; width: 100%; min-width: 0; }
+.dt-workspace-control .dt-workspace-trigger { flex: 1; width: auto; }
+.dt-workspace-toggle { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 26px; height: 30px; border-radius: var(--dt-radius-sm); color: var(--muted-foreground); transition: background-color 140ms, color 140ms; }
+.dt-workspace-toggle:hover, .dt-workspace-toggle[aria-expanded="true"] { background: var(--accent); color: var(--foreground); }
+.dt-workspace-toggle:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
 /* The collapsed rail: the open header stood on end (workspace, expand,
    search), the shelves, and a new conversation at the foot. The workspace
    menu, which holds settings and the account, opens beside the rail. */
@@ -267,9 +285,12 @@ button.dt-record-toggle:focus-visible { outline: 2px solid var(--ring); outline-
 .dt-rail-brand { display: grid; place-items: center; width: 36px; height: 36px; }
 .dt-rail-divider { width: 18px; height: 1px; margin: 5px 0; background: color-mix(in srgb, var(--border) 85%, transparent); }
 .dt-rail-foot { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; padding-top: 6px; }
-.dt-workspace-menu.is-rail { flex: none; margin-bottom: 2px; }
+.dt-workspace-menu.is-rail { flex: none; width: auto; margin-bottom: 2px; }
 .dt-workspace-menu.is-rail .dt-workspace-trigger { justify-content: center; width: 36px; height: 36px; padding: 0; }
 .dt-workspace-menu.is-rail .dt-workspace-panel { top: 0; left: calc(100% + 10px); width: 264px; }
+.dt-account-menu.is-rail { flex: none; margin-bottom: 2px; }
+.dt-account-menu.is-rail .dt-account-trigger { justify-content: center; width: 36px; height: 36px; padding: 0; }
+.dt-account-menu.is-rail .dt-account-panel { top: 0; left: calc(100% + 10px); width: 240px; }
 .dt-workspace-trigger { display: flex; align-items: center; gap: 8px; width: 100%; height: 34px; padding: 0 8px; border-radius: var(--dt-radius-md); font-size: 13.5px; font-weight: 600; color: var(--foreground); transition: background-color 140ms; }
 .dt-workspace-trigger:hover, .dt-workspace-trigger[aria-expanded="true"] { background: var(--accent); }
 .dt-workspace-trigger:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
@@ -288,7 +309,10 @@ button.dt-record-toggle:focus-visible { outline: 2px solid var(--ring); outline-
 }
 .dt-menu-item:hover, .dt-menu-item:focus-visible, .dt-menu-slot :is(a, button):hover { background: var(--accent); outline: none; }
 .dt-menu-item.is-quiet { color: var(--muted-foreground); }
+.dt-menu-item.is-danger { color: color-mix(in srgb, #b91c1c 78%, var(--foreground)); }
+.dt-menu-item.is-danger:hover, .dt-menu-item.is-danger:focus-visible { color: #b91c1c; }
 .dt-menu-item > svg { flex-shrink: 0; opacity: .8; }
+.dt-workspace-badge { flex-shrink: 0; padding: 1px 6px; border-radius: 999px; background: color-mix(in srgb, var(--primary) 10%, transparent); color: color-mix(in srgb, var(--primary) 85%, var(--foreground)); font-size: 10px; font-weight: 500; line-height: 1.5; }
 .dt-menu-slot :is(a, button) { color: var(--foreground) !important; background: transparent; }
 .dt-menu-divider { height: 1px; margin: 6px 4px; background: var(--border); }
 .dt-menu-footer { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 0 8px; font-size: 11.5px; color: var(--muted-foreground); }

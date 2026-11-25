@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Ear,
   History,
+  KeyRound,
   NotebookPen,
   Plug,
   Terminal,
@@ -42,7 +43,9 @@ export type DashKey =
   | "skills"
   | "mcp"
   | "cli_apps"
-  | "whisper";
+  | "whisper"
+  | "profile"
+  | "password";
 
 export interface DashboardItem {
   key: DashKey;
@@ -175,6 +178,35 @@ export const DASHBOARD_GROUPS: DashboardGroup[] = [
  * own shelf, apart from the workspace's materials above.
  */
 export const PERSONALIZATION_GROUPS: DashboardGroup[] = [
+  {
+    // "You" comes first: the account's own profile and password, then the
+    // AI's personas, agents and memory. One hub for everything account-level.
+    label: { zh: "账户", en: "Account" },
+    items: [
+      {
+        key: "profile",
+        href: "/profile",
+        icon: UserRound,
+        title: { zh: "个人资料", en: "Profile" },
+        blurb: {
+          zh: "更新你的头像和用户名。",
+          en: "Update your avatar and username.",
+        },
+        tile: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400",
+      },
+      {
+        key: "password",
+        href: "/profile?change=1",
+        icon: KeyRound,
+        title: { zh: "密码", en: "Password" },
+        blurb: {
+          zh: "设置或更改你的登录密码。",
+          en: "Set or change your sign-in password.",
+        },
+        tile: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-300",
+      },
+    ],
+  },
   {
     label: { zh: "个性化", en: "Personalization" },
     items: [

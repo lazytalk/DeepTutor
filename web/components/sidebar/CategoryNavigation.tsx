@@ -1,12 +1,21 @@
 'use client'
 
-import { CalendarDays } from 'lucide-react'
-
 import { useId, useState, startTransition, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { m, useReducedMotion } from 'framer-motion'
-import { MessageCircle, Search, Columns3, PenLine, School } from 'lucide-react'
+import {
+  BookOpen,
+  CalendarDays,
+  Columns3,
+  MessageCircle,
+  PenLine,
+  School,
+  Search,
+  Settings,
+  ShieldCheck,
+} from 'lucide-react'
 import {
   HomeShelfIcon,
   LearningShelfIcon,
@@ -19,8 +28,10 @@ import Tooltip from '@/shared/ui/Tooltip'
 import { categoryForPath, type NavigationCategory } from '@/lib/navigation'
 import { navVisibleUnderPolicy } from './nav-entries'
 import { useAuthStatus } from '@/hooks/useAuthStatus'
+import { useSidebarDrawer } from '@/components/layout/AppShell'
 import { navigateTask } from '@/lib/workspace-scope'
 import { NavigationRow, OverviewRow, Section } from './NavigationPrimitives'
+import { WorkspacePartners } from './WorkspacePartners'
 import { SHORTCUTS } from '@/lib/shortcuts'
 import type { LearningSessions } from './LearningNavigation'
 
@@ -39,15 +50,19 @@ const PersonalizationNavigation = dynamic(() =>
 )
 
 /**
- * The shelves, workspace content first. Partners and personalization belong
- * to the account — the same in every workspace — and sit past a divider so
- * the bar itself says which half a switch of workspace changes.
+ * The shelves, workspace content first. Partners, Settings and personalization
+ * belong to the account — the same in every workspace — and sit past a
+ * divider so the bar itself says which half a switch of workspace changes.
+ * Settings is a destination rather than a shelf: selecting it opens its page
+ * instead of filling the panel. Calendar and the administrative surfaces are
+ * first-level (see PrimaryDestinations).
  */
 export const CATEGORIES = [
   { id: 'home', label: 'navigation.home', icon: HomeShelfIcon, href: '/chat', account: false },
   { id: 'learning', label: 'navigation.learning', icon: LearningShelfIcon, href: '/learning', account: false },
   { id: 'resources', label: 'navigation.resources', icon: ResourcesShelfIcon, href: '/space', account: false },
   { id: 'partners', label: 'navigation.partners', icon: PartnersShelfIcon, href: '/partners', account: true },
+  { id: 'settings', label: 'Settings', icon: Settings, href: '/settings', account: true, destination: true },
   {
     id: 'personalization',
     label: 'navigation.personalization',
@@ -60,9 +75,11 @@ export const CATEGORIES = [
 export function useCategoryNavigation() {
   const pathname = usePathname()
   const { learningPolicy } = useAuthStatus()
-  const categories = CATEGORIES.filter(item =>
-    navVisibleUnderPolicy(item.href, learningPolicy?.allowedSurfaces ?? null)
-  )
+  const categories = CATEGORIES.filter(item => {
+    // Settings is an account destination under every policy.
+    if (item.id === 'settings') return true
+    return navVisibleUnderPolicy(item.href, learningPolicy?.allowedSurfaces ?? null)
+  })
   const [visited, setVisited] = useState<NavigationCategory[]>([])
   const [selection, setSelection] = useState<{
     pathname: string
@@ -97,21 +114,28 @@ export function CategoryTabs({
 }) {
   const { t } = useTranslation()
   const router = useRouter()
+  const pathname = usePathname() ?? '/'
+  const drawer = useSidebarDrawer()
   const id = useId()
   const reduced = useReducedMotion()
-  const [peek, setPeek] = useState(false)
   const select = (category: (typeof CATEGORIES)[number]) => {
+    if ('destination' in category && category.destination) {
+      // Account destinations open their page; they are not sidebar panels.
+      drawer?.close()
+      router.push(category.href)
+      return
+    }
     nav.select(category.id)
     if (collapsed) navigateTask(category.href, router.push)
   }
   const workspace = nav.categories.filter(item => !item.account)
   const account = nav.categories.filter(item => item.account)
-  // The account's shelves fold into a small pair while the workspace is in
-  // use, and open under the pointer, under focus, or once one is selected.
-  const tucked = !collapsed && !peek && !account.some(item => item.id === nav.category)
   const tab = (item: (typeof CATEGORIES)[number]) => {
     const index = nav.categories.indexOf(item)
-    const active = nav.category === item.id
+    const destination = 'destination' in item && item.destination
+    const active = destination
+      ? pathname === item.href || pathname.startsWith(`${item.href}/`)
+      : nav.category === item.id
     return (
       <Tooltip
         key={item.id}
@@ -152,7 +176,8 @@ export function CategoryTabs({
               [next]?.focus()
           }}
           onClick={() => select(item)}
-          className={active ? 'is-active' : ''}
+          data-shelf-scope={item.account ? 'account' : 'workspace'}
+          className={`${active ? 'is-active' : ''} ${item.account ? 'is-account' : ''}`}
         >
           {active && (
             <m.span
@@ -177,20 +202,15 @@ export function CategoryTabs({
         {workspace.map(tab)}
         {account.length > 0 && (
           <>
-            {workspace.length > 0 && <span aria-hidden className="dt-category-divider" />}
-            <div
-              className={`dt-account-tabs ${tucked ? 'is-tucked' : ''}`}
-              onPointerEnter={event => {
-                if (event.pointerType !== 'touch') setPeek(true)
-              }}
-              onPointerLeave={() => setPeek(false)}
-              onFocus={() => setPeek(true)}
-              onBlur={event => {
-                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPeek(false)
-              }}
-            >
-              {account.map(tab)}
-            </div>
+            {workspace.length > 0 && (
+              <>
+                <span aria-hidden className="dt-category-account-divider" />
+                <span className="dt-category-account-label" role="presentation">
+                  {t('navigation.accountShelf')}
+                </span>
+              </>
+            )}
+            {account.map(tab)}
           </>
         )}
       </div>
@@ -201,6 +221,58 @@ export function CategoryTabs({
           </button>
         </Tooltip>
       )}
+    </div>
+  )
+}
+
+/**
+ * First-level destinations that belong to the account, not to a shelf:
+ * Classroom (for every teaching role) and Admin (admins only). They sit
+ * between the workspace selector and the shelf bar, above the divider, and
+ * are deliberately not part of either half of it.
+ */
+export function PrimaryDestinations({ collapsed }: { collapsed: boolean }) {
+  const { t } = useTranslation()
+  const { role, isAdmin, learningPolicy } = useAuthStatus()
+  const drawer = useSidebarDrawer()
+  const allowedSurfaces = learningPolicy?.allowedSurfaces ?? null
+  const items = [
+    ...(['admin', 'teacher', 'student'].includes(role ?? '') &&
+    navVisibleUnderPolicy('/classroom', allowedSurfaces)
+      ? [{ href: '/classroom', label: t('Classroom'), icon: School }]
+      : []),
+    // Calendar is account-level (it follows you across workspaces) and open
+    // to every role, subject to the learning policy.
+    ...(navVisibleUnderPolicy('/calendar', allowedSurfaces)
+      ? [{ href: '/calendar', label: t('Calendar'), icon: CalendarDays }]
+      : []),
+    ...(isAdmin ? [{ href: '/admin/users', label: t('Admin'), icon: ShieldCheck }] : []),
+  ]
+  if (!items.length) return null
+  if (collapsed) {
+    return (
+      <div className="dt-primary-nav is-rail">
+        {items.map(item => (
+          <Tooltip key={item.href} label={item.label} side="right">
+            <Link
+              href={item.href}
+              prefetch={false}
+              aria-label={item.label}
+              onClick={() => drawer?.close()}
+              className="dt-nav-icon"
+            >
+              <item.icon size={18} strokeWidth={1.6} />
+            </Link>
+          </Tooltip>
+        ))}
+      </div>
+    )
+  }
+  return (
+    <div className="dt-primary-nav">
+      {items.map(item => (
+        <OverviewRow key={item.href} href={item.href} label={item.label} icon={item.icon} />
+      ))}
     </div>
   )
 }
@@ -219,7 +291,6 @@ export function CategoryBody({
   learningSessions?: LearningSessions
 }) {
   const { t } = useTranslation()
-  const { role } = useAuthStatus()
   if (collapsed) return null
   return (
     <div
@@ -230,19 +301,13 @@ export function CategoryBody({
     >
       {nav.category === 'home' && (
         <>
-          {/* The tutor leads the shelf, and the classroom sits beside it:
-              classes span workspaces, so the classroom is account-level. */}
           {navVisibleUnderPolicy('/chat', nav.allowedSurfaces) && (
             <OverviewRow href="/chat" label={t('navigation.chat')} icon={MessageCircle} />
           )}
-          {navVisibleUnderPolicy('/classroom', nav.allowedSurfaces) &&
-            ['admin', 'teacher', 'student'].includes(role ?? '') && (
-              <OverviewRow href="/classroom" label={t('Classroom')} icon={School} />
-            )}
           <Section title={t('navigation.workspace')}>
             {[
-              { href: '/calendar', label: 'Calendar', icon: CalendarDays },
               { href: '/kanban', label: 'Task Board', icon: Columns3 },
+              { href: '/notebooks', label: 'Notebooks', icon: BookOpen },
               { href: '/co-writer', label: 'Co-Writer', icon: PenLine },
             ]
               .filter(item => navVisibleUnderPolicy(item.href, nav.allowedSurfaces))
@@ -255,6 +320,7 @@ export function CategoryBody({
                 />
               ))}
           </Section>
+          <WorkspacePartners />
           {sessions}
         </>
       )}

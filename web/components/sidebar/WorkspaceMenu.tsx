@@ -2,14 +2,12 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useId, useState, type ReactNode } from 'react'
-import { Check, ChevronDown, Settings, Settings2 } from 'lucide-react'
+import { useId, useState } from 'react'
+import { Check, ChevronDown, Settings2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useMenuPopover } from '@/shared/ui/useMenuPopover'
 import Tooltip from '@/shared/ui/Tooltip'
 import { useWorkspaceChoices } from '@/components/workspaces/useWorkspaceChoices'
-import { VersionBadge } from '@/components/sidebar/VersionBadge'
-import { clientEditionLabel } from '@/lib/version'
 
 const GLYPH_TINTS = ['#e3655b', '#d9822b', '#c9a227', '#4f9d69', '#3d8fb8', '#6c6fd1', '#a35fc0', '#c25b8a']
 
@@ -55,6 +53,7 @@ export function WorkspaceChoiceList({ onChoose }: { onChoose?: () => void }) {
         >
           <WorkspaceGlyph name={row.display_name} general={!row.workspace_id} size={20} />
           <span className="min-w-0 flex-1 truncate">{row.display_name}</span>
+          {row.shared && <span className="dt-workspace-badge">{t('Shared class')}</span>}
           {row.workspace_id === active && <Check size={15} strokeWidth={2} className="shrink-0" />}
         </button>
       ))}
@@ -67,21 +66,20 @@ export function WorkspaceChoiceList({ onChoose }: { onChoose?: () => void }) {
 }
 
 /**
- * The sidebar's header: which workspace this is, and the account-level
- * places (workspaces, settings, profile) that used to sit in the footer.
+ * The sidebar's workspace row: which workspace this URL is in, and the
+ * workspaces it can switch to. Account-level destinations live in the
+ * account row above it.
  */
 export function WorkspaceMenu({
-  accountSlot,
   onNavigate,
   compact = false,
 }: {
-  accountSlot?: ReactNode
   onNavigate?: () => void
   /** The collapsed rail's form: the workspace's mark alone, opening beside the rail. */
   compact?: boolean
 }) {
   const { t } = useTranslation()
-  const { active, currentName } = useWorkspaceChoices()
+  const { active, currentName, openHome, homeHref } = useWorkspaceChoices()
   const [open, setOpen] = useState(false)
   const rootRef = useMenuPopover<HTMLDivElement>(open, setOpen)
   const menuId = useId()
@@ -106,38 +104,38 @@ export function WorkspaceMenu({
           </button>
         </Tooltip>
       ) : (
-        <button
-          type="button"
-          aria-haspopup="menu"
-          aria-expanded={open}
-          aria-controls={menuId}
-          onClick={() => setOpen(value => !value)}
-          className="dt-workspace-trigger"
-        >
-          <WorkspaceGlyph name={currentName} general={!active} />
-          <span className="min-w-0 flex-1 truncate text-left">{currentName}</span>
-          <ChevronDown size={14} strokeWidth={1.8} className="shrink-0 opacity-60" />
-        </button>
+        <div className="dt-workspace-control">
+          <Link
+            href={homeHref}
+            prefetch={false}
+            onClick={event => {
+              // Let modified clicks open the Chat home in a new tab.
+              if (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1) return
+              event.preventDefault()
+              onNavigate?.()
+              openHome()
+            }}
+            className="dt-workspace-trigger"
+          >
+            <WorkspaceGlyph name={currentName} general={!active} />
+            <span className="min-w-0 flex-1 truncate text-left">{currentName}</span>
+          </Link>
+          <button
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={open}
+            aria-controls={menuId}
+            aria-label={t('Manage workspaces')}
+            onClick={() => setOpen(value => !value)}
+            className="dt-workspace-toggle"
+          >
+            <ChevronDown size={14} strokeWidth={1.8} />
+          </button>
+        </div>
       )}
       {open && (
         <div id={menuId} role="menu" aria-label={t('Manage workspaces')} className="dt-popover dt-workspace-panel">
           <WorkspaceChoiceList onChoose={close} />
-          <div className="dt-menu-divider" />
-          <Link role="menuitem" href="/settings" prefetch={false} onClick={close} className="dt-menu-item">
-            <Settings size={16} strokeWidth={1.6} />
-            <span className="flex-1">{t('Settings')}</span>
-          </Link>
-          {accountSlot ? <div className="dt-menu-slot">{accountSlot}</div> : null}
-          <div className="dt-menu-divider" />
-          <div className="dt-menu-footer">
-            <span
-              className="min-w-0 truncate"
-              title={clientEditionLabel(process.env.NEXT_PUBLIC_APP_VERSION)}
-            >
-              {clientEditionLabel(process.env.NEXT_PUBLIC_APP_VERSION, undefined, 'short')}
-            </span>
-            <VersionBadge onNavigate={close} />
-          </div>
         </div>
       )}
     </div>
