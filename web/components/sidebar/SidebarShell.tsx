@@ -16,7 +16,7 @@ import {
   type CSSProperties,
 } from "react";
 import { useAppShell } from "@/context/AppShellContext";
-import { ChevronsLeft, ChevronsRight, LogOut, PanelLeftClose, Search, SquarePen } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, LogOut, PanelLeftClose, Search, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useChatWorkspaces } from "@/hooks/useChatWorkspaces";
 import { useAuthStatus } from "@/hooks/useAuthStatus";
@@ -191,16 +191,6 @@ export function SidebarShell({
     navigateTask("/chat", router.push);
   };
 
-  const handleHomeClick = (event: React.MouseEvent) => {
-    // Always reset to a fresh session (mirrors the old "New Chat" affordance);
-    // let modifier-clicks fall through to default Link behavior so middle-click
-    // open-in-new-tab still works.
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1)
-      return;
-    event.preventDefault();
-    startNewChat();
-  };
-
   // Shell shortcuts. The handler is re-bound after every render so it always
   // sees the current category list; the listener itself is installed once.
   const hotkeys = useRef<(event: KeyboardEvent) => void>(() => {});
@@ -342,14 +332,14 @@ export function SidebarShell({
         {/* The open sidebar's header, stood on end: the account, then the
             workspace, then the way back out and search. */}
         {bodySlot ? (
-          <Link href={brandHref} prefetch={false} aria-label="Kaiwen Crane Tutor" className="dt-rail-brand">
-            <Image src="/brand/color-logo.png" alt="Kaiwen Crane Tutor" width={22} height={22} className="h-[22px] w-[22px] rounded-md" />
+          <Link href={brandHref} prefetch={false} aria-label={t("Kaiwen Crane Tutor")} className="dt-rail-brand">
+            <Image src="/brand/color-logo.png" alt={t("Kaiwen Crane Tutor")} width={22} height={22} className="h-[22px] w-[22px] rounded-md" />
           </Link>
         ) : (
           <>
             <AccountMenu compact />
-            <WorkspaceMenu compact onNavigate={() => drawer?.close()} />
             <PrimaryDestinations collapsed />
+            <WorkspaceMenu compact onNavigate={() => drawer?.close()} />
           </>
         )}
         <Tooltip label={t("Expand sidebar")} side="right">
@@ -382,15 +372,17 @@ export function SidebarShell({
           {bodySlot ? bodySlot(true) : <CategoryBody nav={categoryNav} collapsed sessions={null} />}
         </div>
 
-        <div className="dt-rail-foot">
+        <div className="dt-rail-foot dt-rail-footer-row">
           {footerOverride ? footerOverride(true) : (
-            <Tooltip label={t("navigation.newChat")} side="right" shortcut={SHORTCUTS.newChat}>
-              <Link prefetch={false} href="/chat" onClick={handleHomeClick} aria-label={t("navigation.newChat")} className="dt-nav-icon">
-                <SquarePen size={17} strokeWidth={1.6} />
-              </Link>
-            </Tooltip>
+            <>
+              <SidebarSignOut compact />
+              <Tooltip label={t("Settings")} side="right">
+                <Link prefetch={false} href="/settings" aria-label={t("Settings")} className="dt-nav-icon">
+                  <Settings size={17} strokeWidth={1.6} />
+                </Link>
+              </Tooltip>
+            </>
           )}
-          <SidebarSignOut compact />
         </div>
         {palette}
       </aside>
@@ -408,14 +400,14 @@ export function SidebarShell({
           <Link href={brandHref} prefetch={false} className="group flex items-center gap-1.5">
             <Image
               src="/brand/color-logo.png"
-              alt="Kaiwen Education"
+              alt={t("Kaiwen Education")}
               width={22}
               height={22}
               className="h-[22px] w-[22px] transition-transform duration-200 group-hover:scale-105"
             />
             <Image
               src="/brand/color-word.png"
-              alt="Kaiwen Education"
+              alt={t("Kaiwen Education")}
               width={1200}
               height={116}
               priority
@@ -460,37 +452,35 @@ export function SidebarShell({
               </button>
             </Tooltip>
           </div>
+          <PrimaryDestinations collapsed={false} />
           <WorkspaceMenu onNavigate={() => drawer?.close()} />
         </div>
       )}
-
-      {!bodySlot && <PrimaryDestinations collapsed={false} />}
 
       {homeSlot ? homeSlot(false) : <CategoryTabs nav={categoryNav} collapsed={false} />}
 
       {/* Partner previews stay visible while their conversation list scrolls. */}
       <div
         ref={recentsScrollRef}
-        className={`min-h-0 flex-1 ${!bodySlot && ["partners", "learning"].includes(categoryNav.category) ? "overflow-hidden" : "overflow-y-auto overscroll-contain pb-2"}`}
+        className={`min-h-0 flex-1 ${!bodySlot && categoryNav.category === "learning" ? "overflow-hidden" : "overflow-y-auto overscroll-contain pb-2"}`}
       >
         <Suspense fallback={<div aria-busy="true" className="mx-4 mt-5 h-3 w-28 rounded bg-muted" />}>
-          {bodySlot ? bodySlot(false) : <CategoryBody nav={categoryNav} collapsed={false} sessions={sessionContent} learningSessions={learningSessions} />}
+          {bodySlot ? bodySlot(false) : <CategoryBody nav={categoryNav} collapsed={false} sessions={sessionContent} learningSessions={learningSessions} onNewChat={startNewChat} />}
         </Suspense>
       </div>
 
-      {/* Secondary nav + footer */}
+      {/* Footer: sign out on the left, Settings on the right. */}
       <div className="dt-sidebar-footer">
         {footerOverride ? footerOverride(false) : (
-          <Tooltip label={t("navigation.newChat")} side="top" shortcut={SHORTCUTS.newChat} as="div" className="block w-full">
-            <Link prefetch={false} href="/chat" onClick={handleHomeClick} className="dt-new-conversation">
-              <SquarePen size={16} strokeWidth={1.7} />
-              <span>{t("navigation.newChat")}</span>
-            </Link>
-          </Tooltip>
+          <div className="dt-sidebar-footer-row">
+            <SidebarSignOut />
+            <Tooltip label={t("Settings")} side="top">
+              <Link prefetch={false} href="/settings" aria-label={t("Settings")} className="dt-nav-icon">
+                <Settings size={17} strokeWidth={1.6} />
+              </Link>
+            </Tooltip>
+          </div>
         )}
-        <div className="dt-sidebar-footer-account">
-          <SidebarSignOut />
-        </div>
       </div>
       {!isMobile && (
         <div

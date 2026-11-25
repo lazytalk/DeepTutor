@@ -86,6 +86,30 @@ export function OverviewRow({
     </div>
   )
 }
+/**
+ * A row-shaped action that does something in place (a new conversation,
+ * say) rather than navigating. It shares the overview row's metrics so it
+ * sits in the same column as the links around it.
+ */
+export function ActionRow({
+  label,
+  icon: Icon,
+  onClick,
+}: {
+  label: string
+  icon: LucideIcon
+  onClick: () => void
+}) {
+  return (
+    <div className="dt-overview-row">
+      <button type="button" onClick={onClick} className="dt-overview-action">
+        <Icon size={16} strokeWidth={1.6} />
+        <span>{label}</span>
+      </button>
+    </div>
+  )
+}
+
 export function Section({
   title,
   action,

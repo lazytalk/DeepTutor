@@ -21,6 +21,18 @@ export const HomeShelfIcon = createLucideIcon('home-shelf', [
   ['path', { d: 'M9.75 20v-4.25a2.25 2.25 0 0 1 4.5 0V20', key: 'door' }],
 ])
 
+export const ChatShelfIcon = createLucideIcon('chat-shelf', [
+  [
+    'path',
+    {
+      d: 'M4.5 6.75A2.75 2.75 0 0 1 7.25 4h9.5a2.75 2.75 0 0 1 2.75 2.75v6.5A2.75 2.75 0 0 1 16.75 16H9.5l-4.25 3.25V16a2.75 2.75 0 0 1-.75-1.9z',
+      className: fill,
+      key: 'bubble',
+    },
+  ],
+  ['path', { d: 'M8.1 8.5h7.8M8.1 11.6h4.9', key: 'lines' }],
+])
+
 export const LearningShelfIcon = createLucideIcon('learning-shelf', [
   [
     'path',

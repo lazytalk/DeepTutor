@@ -1,26 +1,26 @@
 'use client'
 
-import { useId, useState, startTransition, type ReactNode } from 'react'
+import { useEffect, useId, useState, startTransition, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { m, useReducedMotion } from 'framer-motion'
 import {
-  BookOpen,
   CalendarDays,
   Columns3,
-  MessageCircle,
-  PenLine,
+  GraduationCap,
+  ListChecks,
+  NotebookPen,
+  Plus,
   School,
   Search,
-  Settings,
   ShieldCheck,
+  Sparkles,
 } from 'lucide-react'
 import {
+  ChatShelfIcon,
   HomeShelfIcon,
   LearningShelfIcon,
-  PartnersShelfIcon,
-  PersonalizationShelfIcon,
   ResourcesShelfIcon,
 } from './ShelfIcons'
 import { useTranslation } from 'react-i18next'
@@ -30,57 +30,44 @@ import { navVisibleUnderPolicy } from './nav-entries'
 import { useAuthStatus } from '@/hooks/useAuthStatus'
 import { useSidebarDrawer } from '@/components/layout/AppShell'
 import { navigateTask } from '@/lib/workspace-scope'
-import { NavigationRow, OverviewRow, Section } from './NavigationPrimitives'
+import { ActionRow, NavigationRow, OverviewRow, Status } from './NavigationPrimitives'
 import { WorkspacePartners } from './WorkspacePartners'
 import { SHORTCUTS } from '@/lib/shortcuts'
+import { useTaskBoard } from '@/lib/task-board-store'
+import { listNotes, type NoteSummary } from '@/lib/notes-api'
+import { setPendingPrompt } from '@/lib/pending-prompt'
 import type { LearningSessions } from './LearningNavigation'
 
 // Feature libraries load when their category opens, not in every workspace.
 const LearningNavigation = dynamic(() =>
   import('./LearningNavigation').then(module => module.LearningNavigation)
 )
-const PartnerNavigation = dynamic(() =>
-  import('./PartnerNavigation').then(module => module.PartnerNavigation)
-)
 const ResourcesNavigation = dynamic(() =>
   import('./ResourcesNavigation').then(module => module.ResourcesNavigation)
 )
-const PersonalizationNavigation = dynamic(() =>
-  import('./ResourcesNavigation').then(module => module.PersonalizationNavigation)
-)
 
 /**
- * The shelves, workspace content first. Partners, Settings and personalization
- * belong to the account — the same in every workspace — and sit past a
- * divider so the bar itself says which half a switch of workspace changes.
- * Settings is a destination rather than a shelf: selecting it opens its page
- * instead of filling the panel. Calendar and the administrative surfaces are
- * first-level (see PrimaryDestinations).
+ * The shelves behind the icon row: Home (the workspace overview), Chat (new
+ * conversation + history), Learning, Resources, Task Board and Notebook.
+ * Home is the default. Account-level destinations (Calendar, Classroom,
+ * Admin) sit above the workspace selector; Settings and Personalization are
+ * reached from the account footer and identity row instead of taking a shelf.
  */
 export const CATEGORIES = [
-  { id: 'home', label: 'navigation.home', icon: HomeShelfIcon, href: '/chat', account: false },
-  { id: 'learning', label: 'navigation.learning', icon: LearningShelfIcon, href: '/learning', account: false },
-  { id: 'resources', label: 'navigation.resources', icon: ResourcesShelfIcon, href: '/space', account: false },
-  { id: 'partners', label: 'navigation.partners', icon: PartnersShelfIcon, href: '/partners', account: true },
-  { id: 'settings', label: 'Settings', icon: Settings, href: '/settings', account: true, destination: true },
-  {
-    id: 'personalization',
-    label: 'navigation.personalization',
-    icon: PersonalizationShelfIcon,
-    href: '/personalization',
-    account: true,
-  },
+  { id: 'home', label: 'navigation.home', icon: HomeShelfIcon, href: '/chat' },
+  { id: 'chat', label: 'navigation.chat', icon: ChatShelfIcon, href: '/chat' },
+  { id: 'learning', label: 'navigation.learning', icon: LearningShelfIcon, href: '/learning' },
+  { id: 'resources', label: 'navigation.resources', icon: ResourcesShelfIcon, href: '/space' },
+  { id: 'task_board', label: 'navigation.taskBoard', icon: Columns3, href: '/kanban' },
+  { id: 'notebook', label: 'navigation.notebook', icon: NotebookPen, href: '/co-writer' },
 ] as const
 
 export function useCategoryNavigation() {
   const pathname = usePathname()
   const { learningPolicy } = useAuthStatus()
-  const categories = CATEGORIES.filter(item => {
-    // Settings is an account destination under every policy.
-    if (item.id === 'settings') return true
-    return navVisibleUnderPolicy(item.href, learningPolicy?.allowedSurfaces ?? null)
-  })
-  const [visited, setVisited] = useState<NavigationCategory[]>([])
+  const categories = CATEGORIES.filter(item =>
+    navVisibleUnderPolicy(item.href, learningPolicy?.allowedSurfaces ?? null)
+  )
   const [selection, setSelection] = useState<{
     pathname: string
     category: NavigationCategory
@@ -90,107 +77,33 @@ export function useCategoryNavigation() {
   return {
     category,
     categories,
-    visited,
     select: (next: NavigationCategory) => {
-      startTransition(() => {
-        setVisited(previous => [...new Set([...previous, category, next])])
-        setSelection({ pathname, category: next })
-      })
+      startTransition(() => setSelection({ pathname, category: next }))
     },
     allowedSurfaces: learningPolicy?.allowedSurfaces ?? null,
   }
 }
 type Navigation = ReturnType<typeof useCategoryNavigation>
 
+/**
+ * The icons row. Only the active shelf prints its name; the rest are glyphs
+ * with tooltips, so all six destinations fit in one line. Picking one reveals
+ * that shelf's sub-menu and hides the others.
+ */
 export function CategoryTabs({
   nav,
   collapsed,
-  onSearch,
 }: {
   nav: Navigation
   collapsed: boolean
-  /** The rail keeps search with its tabs; the open sidebar has it in its header. */
-  onSearch?: () => void
 }) {
   const { t } = useTranslation()
   const router = useRouter()
-  const pathname = usePathname() ?? '/'
-  const drawer = useSidebarDrawer()
   const id = useId()
   const reduced = useReducedMotion()
   const select = (category: (typeof CATEGORIES)[number]) => {
-    if ('destination' in category && category.destination) {
-      // Account destinations open their page; they are not sidebar panels.
-      drawer?.close()
-      router.push(category.href)
-      return
-    }
     nav.select(category.id)
     if (collapsed) navigateTask(category.href, router.push)
-  }
-  const workspace = nav.categories.filter(item => !item.account)
-  const account = nav.categories.filter(item => item.account)
-  const tab = (item: (typeof CATEGORIES)[number]) => {
-    const index = nav.categories.indexOf(item)
-    const destination = 'destination' in item && item.destination
-    const active = destination
-      ? pathname === item.href || pathname.startsWith(`${item.href}/`)
-      : nav.category === item.id
-    return (
-      <Tooltip
-        key={item.id}
-        label={t(item.label)}
-        description={item.account ? t('navigation.accountShelf') : undefined}
-        side={collapsed ? 'right' : 'bottom'}
-        shortcut={SHORTCUTS.category(index)}
-        // The active tab already prints its name — unless an account shelf's
-        // longer label is truncated, so those keep theirs.
-        suppressed={!collapsed && active && !item.account}
-      >
-        <button
-          id={`category-${item.id}`}
-          type="button"
-          role="tab"
-          aria-controls="category-content"
-          aria-label={t(item.label)}
-          aria-selected={active}
-          tabIndex={active ? 0 : -1}
-          onKeyDown={event => {
-            const delta = ['ArrowRight', 'ArrowDown'].includes(event.key)
-              ? 1
-              : ['ArrowLeft', 'ArrowUp'].includes(event.key)
-                ? -1
-                : 0
-            if (!delta && !['Home', 'End'].includes(event.key)) return
-            event.preventDefault()
-            const next =
-              event.key === 'Home'
-                ? 0
-                : event.key === 'End'
-                  ? nav.categories.length - 1
-                  : (index + delta + nav.categories.length) % nav.categories.length
-            select(nav.categories[next])
-            event.currentTarget
-              .closest('[role="tablist"]')
-              ?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
-              [next]?.focus()
-          }}
-          onClick={() => select(item)}
-          data-shelf-scope={item.account ? 'account' : 'workspace'}
-          className={`${active ? 'is-active' : ''} ${item.account ? 'is-account' : ''}`}
-        >
-          {active && (
-            <m.span
-              layoutId={`category-pill-${id}`}
-              className="dt-category-pill"
-              transition={{ duration: reduced ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
-            />
-          )}
-          <item.icon size={20} strokeWidth={1.6} />
-          <span>{t(item.label)}</span>
-        </button>
-      </Tooltip>
-    )
   }
   return (
     <div className={`dt-category-bar ${collapsed ? 'is-collapsed' : ''}`}>
@@ -199,37 +112,72 @@ export function CategoryTabs({
         aria-label={t('navigation.categories')}
         aria-orientation={collapsed ? 'vertical' : 'horizontal'}
       >
-        {workspace.map(tab)}
-        {account.length > 0 && (
-          <>
-            {workspace.length > 0 && (
-              <>
-                <span aria-hidden className="dt-category-account-divider" />
-                <span className="dt-category-account-label" role="presentation">
-                  {t('navigation.accountShelf')}
-                </span>
-              </>
-            )}
-            {account.map(tab)}
-          </>
-        )}
+        {nav.categories.map((item, index) => {
+          const active = nav.category === item.id
+          return (
+            <Tooltip
+              key={item.id}
+              label={t(item.label)}
+              side={collapsed ? 'right' : 'bottom'}
+              shortcut={SHORTCUTS.category(index)}
+              // The active tab already prints its name.
+              suppressed={!collapsed && active}
+            >
+              <button
+                id={`category-${item.id}`}
+                type="button"
+                role="tab"
+                aria-controls="category-content"
+                aria-label={t(item.label)}
+                aria-selected={active}
+                tabIndex={active ? 0 : -1}
+                onKeyDown={event => {
+                  const delta = ['ArrowRight', 'ArrowDown'].includes(event.key)
+                    ? 1
+                    : ['ArrowLeft', 'ArrowUp'].includes(event.key)
+                      ? -1
+                      : 0
+                  if (!delta && !['Home', 'End'].includes(event.key)) return
+                  event.preventDefault()
+                  const next =
+                    event.key === 'Home'
+                      ? 0
+                      : event.key === 'End'
+                        ? nav.categories.length - 1
+                        : (index + delta + nav.categories.length) % nav.categories.length
+                  select(nav.categories[next])
+                  event.currentTarget
+                    .closest('[role="tablist"]')
+                    ?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+                    [next]?.focus()
+                }}
+                onClick={() => select(item)}
+                className={active ? 'is-active' : ''}
+              >
+                {active && (
+                  <m.span
+                    layoutId={`category-pill-${id}`}
+                    className="dt-category-pill"
+                    transition={{ duration: reduced ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                )}
+                <item.icon size={20} strokeWidth={1.6} />
+                {/* Inactive shelves are icon-only; the label appears with the
+                    selection (and is never printed in the rail). */}
+                {active && !collapsed && <span>{t(item.label)}</span>}
+              </button>
+            </Tooltip>
+          )
+        })}
       </div>
-      {onSearch && (
-        <Tooltip label={t('navigation.search')} side={collapsed ? 'right' : 'bottom'} shortcut={SHORTCUTS.search}>
-          <button type="button" className="dt-nav-icon" aria-label={t('navigation.search')} aria-haspopup="dialog" onClick={onSearch}>
-            <Search size={16} strokeWidth={1.6} />
-          </button>
-        </Tooltip>
-      )}
     </div>
   )
 }
 
 /**
- * First-level destinations that belong to the account, not to a shelf:
- * Classroom (for every teaching role) and Admin (admins only). They sit
- * between the workspace selector and the shelf bar, above the divider, and
- * are deliberately not part of either half of it.
+ * Cross-workspace destinations, above the workspace selector: Calendar for
+ * everyone, Classroom for teaching roles and Admin for administrators. They
+ * belong to the account, so switching workspace never changes them.
  */
 export function PrimaryDestinations({ collapsed }: { collapsed: boolean }) {
   const { t } = useTranslation()
@@ -237,14 +185,14 @@ export function PrimaryDestinations({ collapsed }: { collapsed: boolean }) {
   const drawer = useSidebarDrawer()
   const allowedSurfaces = learningPolicy?.allowedSurfaces ?? null
   const items = [
-    ...(['admin', 'teacher', 'student'].includes(role ?? '') &&
-    navVisibleUnderPolicy('/classroom', allowedSurfaces)
-      ? [{ href: '/classroom', label: t('Classroom'), icon: School }]
-      : []),
     // Calendar is account-level (it follows you across workspaces) and open
     // to every role, subject to the learning policy.
     ...(navVisibleUnderPolicy('/calendar', allowedSurfaces)
       ? [{ href: '/calendar', label: t('Calendar'), icon: CalendarDays }]
+      : []),
+    ...(['admin', 'teacher', 'student'].includes(role ?? '') &&
+    navVisibleUnderPolicy('/classroom', allowedSurfaces)
+      ? [{ href: '/classroom', label: t('Classroom'), icon: School }]
       : []),
     ...(isAdmin ? [{ href: '/admin/users', label: t('Admin'), icon: ShieldCheck }] : []),
   ]
@@ -271,9 +219,127 @@ export function PrimaryDestinations({ collapsed }: { collapsed: boolean }) {
   return (
     <div className="dt-primary-nav">
       {items.map(item => (
-        <OverviewRow key={item.href} href={item.href} label={item.label} icon={item.icon} />
+        <NavigationRow key={item.href} href={item.href} label={item.label} icon={item.icon} />
       ))}
     </div>
+  )
+}
+
+/**
+ * Home's shelf: the workspace overview's suggestions. The tools that used to
+ * sit here are shelves of their own now, and conversations belong to Chat, so
+ * what remains is a short set of ways to start working. Picking one hands the
+ * prompt to the Chat composer. No group title is printed.
+ */
+const HOME_SUGGESTIONS = [
+  { key: 'starters.explain.1', icon: Sparkles },
+  { key: 'starters.solve.1', icon: ListChecks },
+  { key: 'starters.practice.1', icon: GraduationCap },
+] as const
+
+function HomeOverview() {
+  const { t } = useTranslation()
+  const router = useRouter()
+  const drawer = useSidebarDrawer()
+  const pick = (prompt: string) => {
+    setPendingPrompt(prompt)
+    // If Chat is already mounted (the sidebar renders on /chat too), its
+    // prefill bridge takes the line directly; otherwise the pending prompt is
+    // consumed when the Chat view mounts.
+    window.dispatchEvent(new CustomEvent('dt:visualize-prompt', { detail: prompt }))
+    drawer?.close()
+    navigateTask('/chat', router.push)
+  }
+  return (
+    <div className="dt-navigation-section">
+      {HOME_SUGGESTIONS.map(item => (
+        <ActionRow
+          key={item.key}
+          label={t(item.key)}
+          icon={item.icon}
+          onClick={() => pick(t(`${item.key}.prompt`))}
+        />
+      ))}
+    </div>
+  )
+}
+
+/** Task Board's shelf: the board itself, then its three lanes. */
+function TaskBoardNavigation() {
+  const { t } = useTranslation()
+  const { board } = useTaskBoard()
+  const cards = board?.cards.filter(card => !card.archived) ?? []
+  const lanes = [
+    { id: 'todo', label: 'kanban.todo' },
+    { id: 'doing', label: 'kanban.doing' },
+    { id: 'done', label: 'kanban.done' },
+  ] as const
+  const count = (status: string) => cards.filter(card => card.status === status).length
+  return (
+    <>
+      <OverviewRow href="/kanban" label={t('Open board')} icon={Columns3} />
+      <div className="dt-navigation-section">
+        {lanes.map(lane => (
+          <NavigationRow
+            key={lane.id}
+            href="/kanban"
+            label={t(lane.label)}
+            detail={board ? String(count(lane.id)) : undefined}
+            active={false}
+          />
+        ))}
+      </div>
+    </>
+  )
+}
+
+/**
+ * Notebook's shelf: the notebook list at /co-writer. It reads the same page
+ * list the notebook home does, without the editor's state.
+ */
+function NotebookNavigation() {
+  const { t } = useTranslation()
+  const [pages, setPages] = useState<NoteSummary[]>([])
+  const [loading, setLoading] = useState(true)
+  const [failed, setFailed] = useState(false)
+  const [generation, setGeneration] = useState(0)
+  useEffect(() => {
+    let cancelled = false
+    listNotes()
+      .then(({ documents }) => {
+        if (!cancelled) setPages(documents)
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [generation])
+  const retry = () => {
+    setLoading(true)
+    setFailed(false)
+    setGeneration(value => value + 1)
+  }
+  return (
+    <>
+      <OverviewRow href="/co-writer" label={t('navigation.allNotebooks')} icon={NotebookPen} />
+      <div className="dt-navigation-section">
+        <Status loading={loading} error={failed} retry={retry} />
+        {!loading &&
+          !failed &&
+          pages.map(page => (
+            <NavigationRow
+              key={page.id}
+              href={`/co-writer/${page.id}`}
+              label={page.title || t('Untitled')}
+            />
+          ))}
+      </div>
+    </>
   )
 }
 
@@ -282,68 +348,49 @@ export function CategoryBody({
   collapsed,
   sessions,
   learningSessions,
+  onNewChat,
 }: {
   nav: Navigation
   collapsed: boolean
-  /** The home shelf's conversation records. */
+  /**
+   * Chat's conversation records: the new-conversation action lives above
+   * them in the Chat panel.
+   */
   sessions: ReactNode
   /** Learning conversations, filed by the learning shelf under their records. */
   learningSessions?: LearningSessions
+  onNewChat?: () => void
 }) {
   const { t } = useTranslation()
   if (collapsed) return null
+  const fixed = nav.category === 'learning'
   return (
     <div
       id="category-content"
       role="tabpanel"
       aria-labelledby={`category-${nav.category}`}
-      className={`dt-category-content ${['partners', 'learning'].includes(nav.category) ? 'dt-category-content-fixed' : ''}`}
+      className={`dt-category-content ${fixed ? 'dt-category-content-fixed' : ''}`}
     >
-      {nav.category === 'home' && (
+      {nav.category === 'home' && <HomeOverview />}
+      {nav.category === 'chat' && (
         <>
-          {navVisibleUnderPolicy('/chat', nav.allowedSurfaces) && (
-            <OverviewRow href="/chat" label={t('navigation.chat')} icon={MessageCircle} />
-          )}
-          <Section title={t('navigation.workspace')}>
-            {[
-              { href: '/kanban', label: 'Task Board', icon: Columns3 },
-              { href: '/notebooks', label: 'Notebooks', icon: BookOpen },
-              { href: '/co-writer', label: 'Co-Writer', icon: PenLine },
-            ]
-              .filter(item => navVisibleUnderPolicy(item.href, nav.allowedSurfaces))
-              .map(item => (
-                <NavigationRow
-                  key={item.href}
-                  href={item.href}
-                  label={t(item.label)}
-                  icon={item.icon}
-                />
-              ))}
-          </Section>
+          <ActionRow
+            label={t('navigation.newChat')}
+            icon={Plus}
+            onClick={() => onNewChat?.()}
+          />
           <WorkspacePartners />
           {sessions}
         </>
       )}
-      {(nav.category === 'learning' || nav.visited.includes('learning')) && (
-        <div hidden={nav.category !== 'learning'} className="dt-category-panel">
-          <LearningNavigation active={nav.category === 'learning'} sessions={learningSessions} />
+      {nav.category === 'learning' && (
+        <div className="dt-category-panel">
+          <LearningNavigation active sessions={learningSessions} />
         </div>
       )}
-      {(nav.category === 'partners' || nav.visited.includes('partners')) && (
-        <div hidden={nav.category !== 'partners'} className="dt-category-panel">
-          <PartnerNavigation active={nav.category === 'partners'} />
-        </div>
-      )}
-      {(nav.category === 'resources' || nav.visited.includes('resources')) && (
-        <div hidden={nav.category !== 'resources'}>
-          <ResourcesNavigation />
-        </div>
-      )}
-      {(nav.category === 'personalization' || nav.visited.includes('personalization')) && (
-        <div hidden={nav.category !== 'personalization'}>
-          <PersonalizationNavigation allowedSurfaces={nav.allowedSurfaces} />
-        </div>
-      )}
+      {nav.category === 'resources' && <ResourcesNavigation />}
+      {nav.category === 'task_board' && <TaskBoardNavigation />}
+      {nav.category === 'notebook' && <NotebookNavigation />}
     </div>
   )
 }

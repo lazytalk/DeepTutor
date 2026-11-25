@@ -84,6 +84,7 @@ function consoleRoutes(overrides: Routes = {}): Routes {
 
 async function openMathClass() {
   render(<ClassroomConsole />);
+  fireEvent.click(await screen.findByRole("tab", { name: "Classes" }));
   fireEvent.click(await screen.findByRole("button", { name: "Math P3" }));
   await screen.findByText("Class workspaces");
 }

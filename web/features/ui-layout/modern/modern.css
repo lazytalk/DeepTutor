@@ -82,10 +82,11 @@
 .dt-category-bar [role="tablist"] { display: flex; flex: 1; align-items: center; min-width: 0; gap: 1px; }
 /* Padding gives way first as the sidebar narrows, so a selected account shelf
    (the longest row) still fits. */
-.dt-category-bar [role="tab"] { position: relative; display: flex; align-items: center; justify-content: center; flex: 1; min-width: 34px; height: 34px; gap: 6px; padding: 0 clamp(5px, (100cqi - 180px) / 10, 10px); color: var(--muted-foreground); border-radius: var(--dt-nav-radius); transition: color 140ms, background-color 140ms; }
+.dt-category-bar [role="tab"] { position: relative; display: flex; align-items: center; justify-content: center; flex: 0 0 28px; min-width: 0; height: 34px; gap: 5px; padding: 0; color: var(--muted-foreground); border-radius: var(--dt-nav-radius); transition: color 140ms, background-color 140ms; }
 .dt-category-bar [role="tab"] > svg, .dt-category-bar [role="tab"] > span:not(.dt-category-pill) { position: relative; z-index: 1; flex-shrink: 0; }
-.dt-category-bar [role="tab"] > span:not(.dt-category-pill) { display: none; font-size: 13.5px; font-weight: 500; white-space: nowrap; }
-.dt-category-bar [role="tab"].is-active { flex: 1.9; color: var(--foreground); }
+.dt-category-bar [role="tab"] > span:not(.dt-category-pill) { display: none; font-size: 12.5px; font-weight: 500; white-space: nowrap; }
+/* The selected shelf takes the room the icon-only marks leave behind. */
+.dt-category-bar [role="tab"].is-active { flex: 1 1 auto; padding: 0 8px; color: var(--foreground); }
 .dt-category-bar [role="tab"].is-active > span:not(.dt-category-pill) { display: inline; }
 /* A label longer than the room left (an English account shelf, a narrow
    sidebar) truncates instead of pushing the row past the sidebar's edge. */
@@ -95,7 +96,9 @@
 /* This workspace's shelves | the account's shelves. The open bar wraps: a
    full-width rule, then a quiet label and the account's two marks, so the
    grouping reads without hovering anything. */
-.dt-category-bar:not(.is-collapsed) [role="tablist"] { flex-wrap: wrap; row-gap: 3px; }
+/* Six shelves share one line: the inactive marks stay terse and the active
+   label truncates rather than wrapping the row. */
+.dt-category-bar:not(.is-collapsed) [role="tablist"] { flex-wrap: nowrap; }
 .dt-category-account-divider { flex: 0 0 100%; height: 1px; margin: 4px 0 2px; background: color-mix(in srgb, var(--border) 85%, transparent); }
 .dt-category-account-label { flex: 1 1 auto; min-width: 0; align-self: center; padding: 0 6px 0 8px; overflow: hidden; font-size: 10.5px; font-weight: 500; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; color: var(--muted-foreground); }
 .dt-category-bar.is-collapsed .dt-category-account-divider { flex: none; width: 18px; height: 1px; margin: 2px auto; }
@@ -177,7 +180,7 @@
 .dt-partner-session-list, .dt-learning-record-list { mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent); }
 .dt-partner-session-list:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; border-radius: 7px; }
 .dt-navigation-view-all:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
-@container (max-width: 240px) { .dt-category-bar [role="tab"] { padding: 0 5px; gap: 4px; } .dt-category-bar [role="tab"] > span:not(.dt-category-pill) { font-size: 12px; } }
+@container (max-width: 240px) { .dt-category-bar [role="tab"] { flex-basis: 24px; gap: 4px; } .dt-category-bar [role="tab"].is-active { padding: 0 6px; } .dt-category-bar [role="tab"] > span:not(.dt-category-pill) { font-size: 12px; } }
 
 @media (prefers-reduced-motion: reduce) { .dt-category-content { animation: none; } .dt-product-sidebar * { transition-duration: 0ms !important; } }
 
@@ -188,6 +191,10 @@
 .dt-overview-row > a { display: flex; align-items: center; flex: 1; min-width: 0; min-height: var(--dt-nav-row); gap: var(--dt-nav-gap); padding: 6px var(--dt-nav-pad-x); font-size: var(--dt-nav-text); font-weight: 500; }
 .dt-overview-row > a > svg { flex-shrink: 0; opacity: .8; }
 .dt-overview-row > a:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; border-radius: 7px; }
+/* An in-place action dressed as an overview row (e.g. New conversation). */
+.dt-overview-action { display: flex; align-items: center; flex: 1; min-width: 0; min-height: var(--dt-nav-row); gap: var(--dt-nav-gap); padding: 6px var(--dt-nav-pad-x); border-radius: var(--dt-nav-radius); font-size: var(--dt-nav-text); font-weight: 500; text-align: left; color: var(--dt-nav-ink); }
+.dt-overview-action > svg { flex-shrink: 0; opacity: .8; }
+.dt-overview-action:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; border-radius: 7px; }
 /* A shelf that opens on its lead entry keeps it clear of the bar above. */
 .dt-category-content > .dt-overview-row:first-child, .dt-category-content > div > .dt-overview-row:first-child { margin-top: 10px; }
 .dt-learning-record-list { position: relative; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 8px; }
@@ -258,10 +265,18 @@ button.dt-record-toggle:focus-visible { outline: 2px solid var(--ring); outline-
    own destinations and Sign out sits in the footer. */
 .dt-account-identity { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; height: 34px; padding: 0 8px; border-radius: var(--dt-radius-md); font-size: 13px; font-weight: 500; color: var(--muted-foreground); }
 .dt-account-identity.is-rail { flex: none; justify-content: center; width: 36px; height: 36px; padding: 0; }
-/* First-level account destinations: above the shelf bar, outside both halves. */
+/* The identity is a link: it opens Personalization. */
+a.dt-account-identity:hover { background: var(--accent); color: var(--foreground); }
+a.dt-account-identity:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+/* Cross-workspace destinations live in the header, above the workspace row. */
 .dt-primary-nav { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; padding: 2px 8px 6px; border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent); }
+.dt-sidebar-header .dt-primary-nav { padding: 2px 0 6px; }
 .dt-primary-nav.is-rail { align-items: center; gap: 4px; padding: 4px 0; }
 .dt-sidebar-footer-account { display: flex; justify-content: flex-start; margin-top: 6px; }
+/* The footer is one row: sign out left, Settings right. */
+.dt-sidebar-footer-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; }
+/* Settings keeps the right edge even when there is no sign-out (auth off). */
+.dt-sidebar-footer-row > :last-child { margin-left: auto; }
 .dt-sidebar-signout { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: var(--dt-radius-md); font-size: 12.5px; color: var(--muted-foreground); transition: background-color 140ms, color 140ms; }
 .dt-sidebar-signout:hover { background: var(--accent); color: var(--foreground); }
 .dt-sidebar-signout:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
@@ -285,6 +300,9 @@ button.dt-record-toggle:focus-visible { outline: 2px solid var(--ring); outline-
 .dt-rail-brand { display: grid; place-items: center; width: 36px; height: 36px; }
 .dt-rail-divider { width: 18px; height: 1px; margin: 5px 0; background: color-mix(in srgb, var(--border) 85%, transparent); }
 .dt-rail-foot { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; padding-top: 6px; }
+/* In the rail the footer keeps its left/right relationship in one compact row. */
+.dt-rail-footer-row { flex-direction: row; justify-content: center; width: 100%; gap: 2px; }
+.dt-rail-footer-row .dt-nav-icon { width: 26px; height: 32px; }
 .dt-workspace-menu.is-rail { flex: none; width: auto; margin-bottom: 2px; }
 .dt-workspace-menu.is-rail .dt-workspace-trigger { justify-content: center; width: 36px; height: 36px; padding: 0; }
 .dt-workspace-menu.is-rail .dt-workspace-panel { top: 0; left: calc(100% + 10px); width: 264px; }

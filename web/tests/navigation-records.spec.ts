@@ -3,11 +3,18 @@ import { allLearningActivity, type LearningSources } from '@/lib/learning-dashbo
 import { categoryForPath, partnerSessionHref, isNavigationTargetActive } from '@/lib/navigation'
 
 it('keeps old feature URLs in their new categories', () => {
-  for (const path of ['/chat/old-session', '/co-writer/old-document', '/kanban'])
-    expect(categoryForPath(path)).toBe('home')
+  // A conversation belongs to Chat; the blank /chat is Home's overview.
+  expect(categoryForPath('/chat/old-session')).toBe('chat')
+  // The notebook editor/list is /co-writer; /notebooks is Favorites.
+  for (const path of ['/co-writer/old-document'])
+    expect(categoryForPath(path)).toBe('notebook')
+  for (const path of ['/kanban'])
+    expect(categoryForPath(path)).toBe('task_board')
   for (const path of ['/learning/books/old-book', '/learning/reading/old-material'])
     expect(categoryForPath(path)).toBe('learning')
-  for (const path of ['/space', '/space/chat-history', '/knowledge-bases/old-kb', '/notebooks/old-notebook'])
+  for (const path of ['/space', '/space/chat-history', '/knowledge-bases/old-kb'])
+    expect(categoryForPath(path)).toBe('resources')
+  for (const path of ['/notebooks/old-notebook'])
     expect(categoryForPath(path)).toBe('resources')
   // The account's own places, the same in every workspace.
   for (const path of ['/personalization', '/agents', '/space/mcp', '/space/skills', '/space/personas', '/memory/l1'])

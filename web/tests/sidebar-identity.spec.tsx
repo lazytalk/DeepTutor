@@ -10,7 +10,6 @@ import {
   CategoryTabs,
   PrimaryDestinations,
 } from "@/components/sidebar/CategoryNavigation";
-import type { NavigationCategory } from "@/lib/navigation";
 import { registerWorkspaceNavigator } from "@/lib/workspace-scope";
 
 const fixture = vi.hoisted(() => ({
@@ -108,22 +107,24 @@ vi.mock("@/hooks/useChatWorkspaces", () => ({
   }),
 }));
 
-it("shows the account as identity only, with no dropdown", () => {
+it("makes the account identity a link to Personalization, with no dropdown", () => {
   const { container } = render(<AccountMenu />);
   expect(screen.getByText("teacher1")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "teacher1" })).toHaveAttribute(
+    "href",
+    "/personalization",
+  );
   expect(screen.queryByRole("menu")).toBeNull();
   expect(screen.queryByRole("button")).toBeNull();
   expect(container.querySelector('[aria-haspopup="menu"]')).toBeNull();
   expect(container.textContent).not.toMatch(/v\d+\.\d+/);
 });
 
-it("shows only the avatar in the collapsed rail, again without a menu", () => {
+it("sends the collapsed rail's avatar to Personalization too", () => {
   const { container } = render(<AccountMenu compact />);
-  expect(container.querySelector(".dt-account-identity")).toHaveAttribute(
-    "aria-label",
-    "teacher1",
-  );
-  expect(container.querySelector("button")).toBeNull();
+  const identity = container.querySelector(".dt-account-identity");
+  expect(identity).toHaveAttribute("aria-label", "teacher1");
+  expect(identity).toHaveAttribute("href", "/personalization");
   expect(container.querySelector('[aria-haspopup="menu"]')).toBeNull();
 });
 
@@ -221,7 +222,7 @@ it("hides the workspace partner list when nothing is bound here", () => {
   fixture.query = new URLSearchParams();
 });
 
-it("renders Classroom and Calendar first-level for a teacher and hides Admin", () => {
+it("orders cross-workspace destinations Calendar, Classroom, Admin for a teacher", () => {
   fixture.auth.isAdmin = false;
   fixture.auth.role = "teacher";
   render(<PrimaryDestinations collapsed={false} />);
@@ -229,6 +230,9 @@ it("renders Classroom and Calendar first-level for a teacher and hides Admin", (
   expect(screen.getByRole("link", { name: "Classroom" })).toHaveAttribute("href", "/classroom");
   expect(screen.getByRole("link", { name: "Calendar" })).toHaveAttribute("href", "/calendar");
   expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
+  expect(
+    screen.getAllByRole("link").map((link) => link.textContent),
+  ).toEqual(["Calendar", "Classroom"]);
   fixture.auth.isAdmin = true;
   fixture.auth.role = "admin";
 });
@@ -244,7 +248,7 @@ it("keeps Calendar first-level for a plain account too", () => {
   fixture.auth.role = "teacher";
 });
 
-it("renders Classroom, Calendar and Admin first-level for an admin", () => {
+it("orders Calendar, Classroom and Admin first-level for an admin", () => {
   fixture.auth.isAdmin = true;
   fixture.auth.role = "admin";
   const { container } = render(<PrimaryDestinations collapsed={false} />);
@@ -253,62 +257,60 @@ it("renders Classroom, Calendar and Admin first-level for an admin", () => {
   expect(screen.getByRole("link", { name: "Calendar" })).toHaveAttribute("href", "/calendar");
   expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/admin/users");
   const labels = [...container.querySelectorAll("a")].map((link) => link.textContent);
-  expect(labels).toEqual(["Classroom", "Calendar", "Admin"]);
+  expect(labels).toEqual(["Calendar", "Classroom", "Admin"]);
   fixture.auth.isAdmin = true;
   fixture.auth.role = "teacher";
 });
 
-it("groups workspace shelves before the account-level group", () => {
+it("shows six shelves, with only the active one printing its name", () => {
   type CategoryId = (typeof CATEGORIES)[number]["id"];
   const nav = {
     category: "home" as CategoryId,
     categories: [...CATEGORIES],
-    visited: [] as NavigationCategory[],
     select: vi.fn(),
     allowedSurfaces: null,
   };
   const { container } = render(<CategoryTabs nav={nav} collapsed={false} />);
 
-  expect(screen.getByText("navigation.accountShelf")).toBeInTheDocument();
-  expect(container.querySelector(".dt-category-account-divider")).not.toBeNull();
-  for (const id of ["home", "learning", "resources"]) {
-    expect(screen.getByRole("tab", { name: `navigation.${id}` })).toHaveAttribute(
-      "data-shelf-scope",
-      "workspace",
-    );
-  }
-  for (const name of ["navigation.partners", "Settings", "navigation.personalization"]) {
-    expect(screen.getByRole("tab", { name })).toHaveAttribute("data-shelf-scope", "account");
-  }
   const order = [...container.querySelectorAll('[role="tab"]')].map((tab) =>
     tab.getAttribute("aria-label"),
   );
   expect(order).toEqual([
     "navigation.home",
+    "navigation.chat",
     "navigation.learning",
     "navigation.resources",
-    "navigation.partners",
-    "Settings",
-    "navigation.personalization",
+    "navigation.taskBoard",
+    "navigation.notebook",
   ]);
-  // Calendar is first-level, not an account shelf tab.
-  expect(screen.queryByRole("tab", { name: "Calendar" })).toBeNull();
-  expect(screen.queryByRole("tab", { name: "Profile" })).toBeNull();
+  expect(screen.getByRole("tab", { name: "navigation.home" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  // Active expands to icon + label; the rest are icon-only.
+  expect(
+    [...container.querySelectorAll('[role="tab"]')].map((tab) => tab.textContent),
+  ).toEqual(["navigation.home", "", "", "", "", ""]);
+  // Favorites is not an icon — it lives under Resources only.
+  expect(screen.queryByRole("tab", { name: /Favorites/ })).toBeNull();
+  // The account shelf is gone.
+  expect(container.querySelector(".dt-category-account-divider")).toBeNull();
+  expect(screen.queryByRole("tab", { name: "navigation.personalization" })).toBeNull();
+  expect(screen.queryByRole("tab", { name: "Settings" })).toBeNull();
+  expect(screen.queryByRole("tab", { name: "navigation.partners" })).toBeNull();
 });
 
-it("opens Settings as an account destination without turning it into a panel", () => {
+it("switches the active shelf when an icon is picked", () => {
   type CategoryId = (typeof CATEGORIES)[number]["id"];
   const nav = {
     category: "home" as CategoryId,
     categories: [...CATEGORIES],
-    visited: [] as NavigationCategory[],
     select: vi.fn(),
     allowedSurfaces: null,
   };
-  fixture.push.mockClear();
   render(<CategoryTabs nav={nav} collapsed={false} />);
 
-  fireEvent.click(screen.getByRole("tab", { name: "Settings" }));
-  expect(fixture.push).toHaveBeenCalledWith("/settings");
-  expect(nav.select).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("tab", { name: "navigation.chat" }));
+  expect(nav.select).toHaveBeenCalledWith("chat");
+  expect(fixture.push).not.toHaveBeenCalled();
 });

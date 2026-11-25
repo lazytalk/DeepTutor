@@ -10,6 +10,7 @@ import {
   Brain,
   ClipboardList,
   Ear,
+  HeartHandshake,
   History,
   KeyRound,
   NotebookPen,
@@ -45,7 +46,8 @@ export type DashKey =
   | "cli_apps"
   | "whisper"
   | "profile"
-  | "password";
+  | "password"
+  | "partners";
 
 export interface DashboardItem {
   key: DashKey;
@@ -292,6 +294,24 @@ export const PERSONALIZATION_GROUPS: DashboardGroup[] = [
           en: "Review what your tutor remembers about you.",
         },
         tile: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+      },
+    ],
+  },
+  {
+    // Partners are account-level too — reachable here now that they no
+    // longer take a shelf of their own in the sidebar.
+    label: { zh: "伙伴", en: "Partners" },
+    items: [
+      {
+        key: "partners",
+        href: "/partners",
+        icon: HeartHandshake,
+        title: { zh: "伙伴", en: "Partners" },
+        blurb: {
+          zh: "与接入 IM 频道、可独立思考的伙伴和伙伴组对话。",
+          en: "Talk with partners and partner groups reachable over IM channels.",
+        },
+        tile: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
       },
     ],
   },

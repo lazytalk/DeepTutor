@@ -20,7 +20,7 @@ vi.mock("@/hooks/useChatWorkspaces", () => ({ useChatWorkspaces: () => ({ worksp
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
-  usePathname: () => "/co-writer",
+  usePathname: () => "/chat",
   useRouter: () => ({ push: fixture.push }),
 }));
 vi.mock("next/image", () => ({ default: () => null }));
@@ -67,17 +67,25 @@ it("loads conversation history while navigation remains usable, then preserves s
       onOrganizeSession={onOrganize}
     />,
   );
+  // Home is the default shelf; conversation history lives under Chat.
+  expect(screen.queryByText("Retained session")).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "starters.explain.1" }),
+  ).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("tab", { name: "navigation.chat" }));
   expect(container.querySelector('[aria-busy="true"]')).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Co-Writer" })).toHaveAttribute(
-    "href",
-    "/co-writer",
-  );
+  expect(
+    screen.getByRole("button", { name: "navigation.newChat" }),
+  ).toBeInTheDocument();
 
   const history = await screen.findByText("Retained session");
   const scroller = history.closest(".overflow-y-auto");
   expect(scroller).toContainElement(
-    screen.getByRole("link", { name: "Co-Writer" }),
+    screen.getByRole("button", { name: "navigation.newChat" }),
   );
+  // Only Chat's sub-menu is visible now.
+  expect(screen.queryByRole("button", { name: "starters.explain.1" })).toBeNull();
   expect(scroller).not.toContainElement(
     screen.getByRole("tab", { name: "navigation.home" }),
   );
@@ -119,7 +127,8 @@ it("keeps Home pinned even when a previous layout folded it into More", () => {
   render(<SidebarShell />);
   expect(screen.getAllByRole("tab", { name: "navigation.home" })).toHaveLength(1);
   expect(screen.queryByRole("button", { name: "Arrange Home" })).toBeNull();
-  fireEvent.click(screen.getByRole("link", { name: "navigation.newChat" }));
+  fireEvent.click(screen.getByRole("tab", { name: "navigation.chat" }));
+  fireEvent.click(screen.getByRole("button", { name: "navigation.newChat" }));
   // The new chat stays in the tab's workspace (General here).
   expect(fixture.push).toHaveBeenCalledWith("/chat?dt_workspace=");
 });

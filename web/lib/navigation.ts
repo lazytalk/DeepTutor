@@ -3,8 +3,11 @@ import type { SessionSummary } from '@/lib/session-api'
 import { sessionRoute } from '@/lib/mastery-session'
 export type NavigationCategory =
   | 'home'
+  | 'chat'
   | 'learning'
   | 'resources'
+  | 'task_board'
+  | 'notebook'
   | 'partners'
   | 'settings'
   | 'calendar'
@@ -30,6 +33,14 @@ export function categoryForPath(pathname: string): NavigationCategory {
   if (under(pathname, '/calendar')) return 'calendar'
   if (under(pathname, '/admin')) return 'admin'
   if (PERSONALIZATION_ROOTS.some(root => under(pathname, root))) return 'personalization'
+  // The blank /chat is the workspace overview (Home); an open conversation
+  // belongs to Chat, so its history stays selected while it is being read.
+  if (pathname === '/chat') return 'home'
+  if (pathname.startsWith('/chat/')) return 'chat'
+  if (under(pathname, '/kanban')) return 'task_board'
+  // The notebook editor/list is /co-writer; /notebooks is Favorites and is a
+  // Resources sub-menu, not a shelf of its own.
+  if (under(pathname, '/co-writer')) return 'notebook'
   if (
     pathname === '/learning' ||
     pathname.startsWith('/learning/')
