@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, ClipboardList, RotateCcw, Users } from "lucide-react";
@@ -8,7 +9,6 @@ import {
   type ClassroomDashboard,
   type DashboardStudentProgress,
 } from "../api";
-import { StudentActivityViewer } from "./StudentActivityViewer";
 
 const panel = "rounded-xl border border-[var(--border)] bg-[var(--secondary)] p-4";
 const card = "rounded-xl border border-[var(--border)] bg-[var(--secondary)] p-4";
@@ -40,18 +40,13 @@ function needsAttention(totals: StudentTotals): boolean {
 /**
  * Teacher landing view: aggregate progress across every owned class.
  * Class headers drill into the existing per-class panels; student rows open
- * the read-only activity viewer in place.
+ * the class-scoped learning record route.
  */
 export function TeacherDashboard({ onOpenClass }: { onOpenClass: (classId: string) => void }) {
   const { t } = useTranslation();
   const [data, setData] = useState<ClassroomDashboard | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [viewer, setViewer] = useState<{
-    classId: string;
-    studentId: string;
-    username: string;
-  } | null>(null);
 
   const reload = useCallback(async () => {
     setBusy(true);
@@ -150,21 +145,14 @@ export function TeacherDashboard({ onOpenClass }: { onOpenClass: (classId: strin
               const flagged = needsAttention(summary);
               return (
                 <li key={student.student_id}>
-                  <button
-                    type="button"
+                  <Link
+                    href={`/classroom/record/${encodeURIComponent(student.student_id)}`}
                     data-testid={`dashboard-student-${entry.class_id}-${student.student_id}`}
                     className={`flex w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border px-3 py-2 text-left text-sm ${
                       flagged
                         ? "border-[var(--destructive)] bg-[var(--background)]"
                         : "border-[var(--border)]"
                     }`}
-                    onClick={() =>
-                      setViewer({
-                        classId: entry.class_id,
-                        studentId: student.student_id,
-                        username: student.username,
-                      })
-                    }
                   >
                     <span className="font-medium">{student.username}</span>
                     {flagged && (
@@ -189,30 +177,16 @@ export function TeacherDashboard({ onOpenClass }: { onOpenClass: (classId: strin
                           .join(" · ")}
                       </span>
                     )}
-                  </button>
+                    <span className="ml-auto text-xs text-[var(--muted-foreground)]">
+                      {t("Learning record")} →
+                    </span>
+                  </Link>
                 </li>
               );
             })}
           </ul>
         </section>
       ))}
-
-      {viewer && (
-        <section className={panel}>
-          <button
-            type="button"
-            className="mb-2 text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-            onClick={() => setViewer(null)}
-          >
-            ← {t("Back to overview")}
-          </button>
-          <StudentActivityViewer
-            classId={viewer.classId}
-            studentId={viewer.studentId}
-            username={viewer.username}
-          />
-        </section>
-      )}
     </div>
   );
 }

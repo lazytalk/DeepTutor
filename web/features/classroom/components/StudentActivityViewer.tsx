@@ -82,9 +82,18 @@ export function StudentActivityViewer({
 
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--secondary)] p-4">
-      <h2 className="mb-2 text-sm font-medium">
-        {username} · {t("Assigned work")}
-      </h2>
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-medium">
+          {username} · {t("Assigned work")}
+        </h2>
+        <Link
+          href={`/classroom/record/${encodeURIComponent(studentId)}`}
+          data-testid="open-learning-record"
+          className="ml-auto text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+        >
+          {t("Open learning record")} →
+        </Link>
+      </div>
       {error && <p className="mb-2 text-xs text-[var(--destructive)]">{error}</p>}
       <div className="flex flex-wrap gap-2">
         {assignments

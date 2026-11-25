@@ -18,6 +18,36 @@ _DUE_AT_SQL = """(CASE WHEN (n.resolved=1 OR n.is_correct=1)
     ELSE COALESCE(r.due_at, n.created_at) END)"""
 
 
+def _entry_scope(
+    category_ids: list[int] | tuple[int, ...] | None = None,
+    mastery_path_ids: list[str] | tuple[str, ...] | None = None,
+) -> tuple[str, list[object]]:
+    """SQL fragment restricting notebook entries to assigned copies.
+
+    ``None`` (the default) means "do not scope" and preserves the historical
+    learner-wide behavior of the practice endpoints. A non-empty scope is an
+    OR across the supplied category ids and mastery-path ids.
+    """
+    clauses: list[str] = []
+    params: list[object] = []
+    categories = [int(item) for item in (category_ids or []) if item is not None]
+    paths = [str(item) for item in (mastery_path_ids or []) if item]
+    if categories:
+        placeholders = ",".join("?" for _ in categories)
+        clauses.append(
+            "EXISTS(SELECT 1 FROM notebook_entry_categories c "
+            f"WHERE c.entry_id = n.id AND c.category_id IN ({placeholders}))"
+        )
+        params.extend(categories)
+    if paths:
+        placeholders = ",".join("?" for _ in paths)
+        clauses.append(f"n.mastery_path_id IN ({placeholders})")
+        params.extend(paths)
+    if not clauses:
+        return "", []
+    return " AND (" + " OR ".join(clauses) + ")", params
+
+
 class ReviewConflict(ValueError):
     """A different tab or source changed this question since it was opened."""
 
@@ -112,9 +142,17 @@ class PracticeStore:
         finally:
             conn.close()
 
-    def overview(self, timezone: str, now: float | None = None) -> dict:
+    def overview(
+        self,
+        timezone: str,
+        now: float | None = None,
+        *,
+        category_ids: list[int] | None = None,
+        mastery_path_ids: list[str] | None = None,
+    ) -> dict:
         now = time.time() if now is None else now
         start, end = day_bounds(timezone, now)
+        scope_sql, scope_params = _entry_scope(category_ids, mastery_path_ids)
         with self.connect() as conn:
             row = conn.execute(
                 f"""
@@ -124,17 +162,17 @@ class PracticeStore:
                     COALESCE(SUM({_DUE_AT_SQL} <= ?), 0) AS overdue,
                     MIN({_DUE_AT_SQL}) AS next_due_at
                 FROM notebook_entries n LEFT JOIN sessions s ON s.id = n.session_id
-                LEFT JOIN practice_review_state r ON r.entry_id = n.id WHERE (n.session_id IS NULL OR s.deleted_at IS NULL)
+                LEFT JOIN practice_review_state r ON r.entry_id = n.id WHERE (n.session_id IS NULL OR s.deleted_at IS NULL){scope_sql}
             """,  # nosec B608 - fixed scope SQL; values bound
-                [now, start],
+                [now, start, *scope_params],
             ).fetchone()  # nosec B608 - bound scope values
             completed = conn.execute(
-                """
+                f"""
                 SELECT COUNT(DISTINCT e.entry_id) FROM practice_review_events e
                 JOIN notebook_entries n ON n.id = e.entry_id LEFT JOIN sessions s ON s.id = n.session_id
-                WHERE e.reviewed_at >= ? AND e.reviewed_at < ? AND (n.session_id IS NULL OR s.deleted_at IS NULL)
+                WHERE e.reviewed_at >= ? AND e.reviewed_at < ? AND (n.session_id IS NULL OR s.deleted_at IS NULL){scope_sql}
             """,  # nosec B608 - fixed scope SQL; values bound
-                [start, end],
+                [start, end, *scope_params],
             ).fetchone()[0]  # nosec B608
         return {**dict(row), "reviewed_today": completed, "day_end": end, "timezone": timezone}
 
@@ -143,11 +181,21 @@ class PracticeStore:
         timezone: str,
         days: int = 30,
         now: float | None = None,
+        *,
+        category_ids: list[int] | None = None,
+        mastery_path_ids: list[str] | None = None,
     ) -> dict:
         from .analytics import analytics
 
         with self.connect() as conn:
-            return analytics(conn, timezone, days, time.time() if now is None else now)
+            return analytics(
+                conn,
+                timezone,
+                days,
+                time.time() if now is None else now,
+                category_ids=category_ids,
+                mastery_path_ids=mastery_path_ids,
+            )
 
     def queue(
         self,
@@ -155,14 +203,19 @@ class PracticeStore:
         category_id: int | None = None,
         limit: int = 20,
         now: float | None = None,
+        *,
+        mastery_path_ids: list[str] | None = None,
     ) -> list[int]:
         now = time.time() if now is None else now
         day_bounds(timezone, now)
         scope = "(n.session_id IS NULL OR s.deleted_at IS NULL)"
-        params: list[int] = []
+        params: list[object] = []
         if category_id is not None:
             scope += " AND EXISTS(SELECT 1 FROM notebook_entry_categories c WHERE c.entry_id=n.id AND c.category_id=?)"
             params.append(category_id)
+        path_scope, path_params = _entry_scope(None, mastery_path_ids)
+        scope += path_scope
+        params.extend(path_params)
         with self.connect() as conn:
             rows = conn.execute(
                 f"""

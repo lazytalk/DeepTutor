@@ -7,10 +7,21 @@ from zoneinfo import ZoneInfo
 from .scheduler import day_bounds
 
 
-def analytics(conn: sqlite3.Connection, timezone: str, days: int, now: float) -> dict:
+def analytics(
+    conn: sqlite3.Connection,
+    timezone: str,
+    days: int,
+    now: float,
+    *,
+    category_ids: list[int] | None = None,
+    mastery_path_ids: list[str] | None = None,
+) -> dict:
     if days not in {7, 30, 90}:
         raise ValueError("Choose 7, 30 or 90 days")
+    from .storage import _entry_scope
+
     day_bounds(timezone, now)
+    scope_sql, scope_params = _entry_scope(category_ids, mastery_path_ids)
     zone = ZoneInfo(timezone)
     today = datetime.fromtimestamp(now, zone).date()
     first = today - timedelta(days=days - 1)
@@ -42,9 +53,9 @@ def analytics(conn: sqlite3.Connection, timezone: str, days: int, now: float) ->
             f"""SELECT practice_day({timestamp}) AS day,
                 COALESCE(NULLIF(n.source, ''), 'deep_question') AS source, COUNT(*) AS count
                 FROM notebook_entries n LEFT JOIN sessions s ON s.id=n.session_id {join}
-                WHERE (n.session_id IS NULL OR s.deleted_at IS NULL) {extra} AND {timestamp}>=? AND {timestamp}<=?
+                WHERE (n.session_id IS NULL OR s.deleted_at IS NULL) {extra} AND {timestamp}>=? AND {timestamp}<=?{scope_sql}
                 GROUP BY day, source""",  # nosec B608 - identifiers and scope are internal literals
-            [start, now],
+            [start, now, *scope_params],
         )
         for row in rows:
             daily[row["day"]][metric] += row["count"]

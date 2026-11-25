@@ -9,6 +9,9 @@ Assignments and cross-account activity management arrive in P2.
 
 from __future__ import annotations
 
+import asyncio
+import time
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
@@ -705,6 +708,578 @@ async def teacher_dashboard(_: object = Depends(require_teacher)) -> dict:
             "sessions": sessions,
         },
     }
+
+
+def _merge_practice_summary(parts: list[dict]) -> dict:
+    """Sum per-workspace practice overviews into one class-scoped summary."""
+    if not parts:
+        return {}
+    next_due = [
+        part.get("next_due_at")
+        for part in parts
+        if part.get("next_due_at") is not None
+    ]
+    return {
+        "total": sum(int(part.get("total") or 0) for part in parts),
+        "mistakes": sum(int(part.get("mistakes") or 0) for part in parts),
+        "due": sum(int(part.get("due") or 0) for part in parts),
+        "overdue": sum(int(part.get("overdue") or 0) for part in parts),
+        "reviewed_today": sum(int(part.get("reviewed_today") or 0) for part in parts),
+        "next_due_at": min(next_due) if next_due else None,
+        "day_end": max((float(part.get("day_end") or 0) for part in parts), default=0),
+        "timezone": str(parts[0].get("timezone") or "UTC"),
+    }
+
+
+def _merge_practice_analytics(parts: list[dict]) -> dict:
+    """Sum per-workspace analytics into one class-scoped calendar view."""
+    if not parts:
+        return {}
+    metrics = ("questions", "mistakes", "reviews")
+    daily: dict[str, dict] = {}
+    sources: dict[str, dict] = {}
+    for part in parts:
+        for row in part.get("daily") or []:
+            date = str(row.get("date") or "")
+            if not date:
+                continue
+            bucket = daily.setdefault(date, {"date": date, **{m: 0 for m in metrics}})
+            for metric in metrics:
+                bucket[metric] += int(row.get(metric) or 0)
+        for row in part.get("sources") or []:
+            source = str(row.get("source") or "")
+            bucket = sources.setdefault(
+                source, {"source": source, **{m: 0 for m in metrics}}
+            )
+            for metric in metrics:
+                bucket[metric] += int(row.get(metric) or 0)
+    return {
+        "timezone": str(parts[0].get("timezone") or "UTC"),
+        "days": int(parts[0].get("days") or 30),
+        "start_date": min(
+            (str(part.get("start_date") or "") for part in parts if part.get("start_date")),
+            default="",
+        ),
+        "end_date": max(
+            (str(part.get("end_date") or "") for part in parts if part.get("end_date")),
+            default="",
+        ),
+        "updated_at": max(
+            (float(part.get("updated_at") or 0) for part in parts), default=0
+        ),
+        "daily": [daily[date] for date in sorted(daily)],
+        "sources": [sources[source] for source in sorted(sources)],
+        "totals": {
+            metric: sum(int((part.get("totals") or {}).get(metric) or 0) for part in parts)
+            for metric in metrics
+        },
+    }
+
+
+@router.get("/students/{student_id}/record")
+async def student_record(student_id: str, _: object = Depends(require_teacher)) -> dict:
+    """One read-only, class-scoped learning record for a student.
+
+    Aggregates only the requesting teacher's active classes and the copies
+    assigned into them. Everything is read under the student's own account
+    scope so no storage resolves in the teacher's account; private work in the
+    student's unrelated workspaces is deliberately never opened.
+    """
+    _require_mode()
+    from deeptutor.multi_user.identity import get_user_by_id
+    from deeptutor.services.classroom.assignments import student_context
+    from deeptutor.services.practice.storage import PracticeStore
+    from deeptutor.services.session.sqlite_store import get_sqlite_session_store
+
+    actor = get_current_user().id
+    info = get_user_by_id(student_id)
+    if info is None:
+        raise HTTPException(status_code=404, detail="Unknown student.")
+    if not classroom.teacher_can_access_student(actor, student_id):
+        raise HTTPException(
+            status_code=403, detail="This student is not in a class you own."
+        )
+
+    records = [
+        record
+        for record in classroom.list_classes(teacher_id=actor)
+        if any(member["user_id"] == student_id for member in record["members"])
+    ]
+    class_names = {record["id"]: record["name"] for record in records}
+    class_ids = set(class_names)
+    assignments = [
+        assignment
+        for assignment in classroom.list_assignments(
+            teacher_id=actor, student_id=student_id
+        )
+        if assignment["class_id"] in class_ids
+    ]
+    live_assignments = [a for a in assignments if not a.get("revoked_at")]
+
+    mastery_topics: list[dict] = []
+    conversations: list[dict] = []
+    conversation_seen: set[tuple[str, str]] = set()
+    practice_sets: list[dict] = []
+    practice_queue: list[dict] = []
+    practice_queue_seen: set[tuple[str, int]] = set()
+    # Per-workspace assigned copies: practice aggregates must never widen to
+    # the student's private notebook.
+    practice_scope: dict[str, dict[str, set]] = {}
+    highlight_rows: dict[tuple[str, int], dict] = {}
+    highlight_total = 0
+    target_names: dict[str, str] = {}
+
+    from deeptutor.api.routers.mastery_path import _read_projection
+    from deeptutor.learning import policy as learning_policy
+    from deeptutor.learning.storage import LearningStore
+
+    with student_context(student_id):
+        for assignment in live_assignments:
+            class_name = class_names.get(assignment["class_id"], "")
+            workspace_id = assignment["target_workspace_id"] or None
+            with workspace_context(workspace_id):
+                if assignment["kind"] == "mastery_topic":
+                    store = LearningStore()
+                    progress = store.load(assignment["target_id"])
+                    if progress is None:
+                        continue
+                    moment = time.time()
+                    projected = _read_projection(progress, now=moment)
+                    summary = learning_policy.map_summary(projected, now=moment)
+                    next_step = learning_policy.next_objective(
+                        projected, now=moment
+                    ).to_dict()
+                    session_ids = store.list_session_ids(assignment["target_id"])
+                    target_names[assignment["id"]] = summary["name"]
+                    topic_row = {
+                        "assignment_id": assignment["id"],
+                        "class_id": assignment["class_id"],
+                        "class_name": class_name,
+                        "path_id": progress.book_id,
+                        "name": summary["name"],
+                        "counts": summary["counts"],
+                        "due_reviews": summary["due_reviews"],
+                        "complete": summary["complete"],
+                        "next": next_step,
+                        "modules": summary["modules"],
+                        "session_count": len(session_ids),
+                        "updated_at": progress.updated_at,
+                        "workspace_id": assignment["target_workspace_id"],
+                    }
+                    mastery_topics.append(topic_row)
+
+                    if session_ids:
+                        session_store = get_sqlite_session_store()
+                        summaries = await session_store.get_session_summaries(session_ids)
+                        by_id = {
+                            str(item.get("session_id") or ""): item for item in summaries
+                        }
+                        for session_id in session_ids:
+                            item = by_id.get(session_id)
+                            if item is None:
+                                continue
+                            conversation_key = (
+                                str(assignment["target_workspace_id"] or ""),
+                                session_id,
+                            )
+                            if conversation_key in conversation_seen:
+                                continue
+                            conversation_seen.add(conversation_key)
+                            conversations.append(
+                                {
+                                    "session_id": session_id,
+                                    "title": str(item.get("title") or ""),
+                                    "created_at": item.get("created_at"),
+                                    "updated_at": item.get("updated_at"),
+                                    "capability": str(item.get("capability") or ""),
+                                    "message_count": item.get("message_count", 0),
+                                    "class_id": assignment["class_id"],
+                                    "class_name": class_name,
+                                    "assignment_id": assignment["id"],
+                                    "topic_id": assignment["target_id"],
+                                    "topic_name": summary["name"],
+                                }
+                            )
+
+                    # Quiz/highlight entries explicitly bound to this assigned
+                    # topic are part of the class copy, never the private bank.
+                    listed = await get_sqlite_session_store().list_notebook_entries(
+                        mastery_path_id=assignment["target_id"], limit=20
+                    )
+                    for entry in listed.get("items", []):
+                        key = (str(assignment["target_workspace_id"] or ""), int(entry["id"]))
+                        if key in highlight_rows:
+                            continue
+                        highlight_rows[key] = {
+                            "id": int(entry["id"]),
+                            "question": str(entry.get("question") or ""),
+                            "question_type": str(entry.get("question_type") or ""),
+                            "is_correct": entry.get("is_correct"),
+                            "result": str(entry.get("result") or ""),
+                            "created_at": entry.get("created_at"),
+                            "knowledge_point_id": str(
+                                entry.get("knowledge_point_id") or ""
+                            ),
+                            "mastery_path_id": assignment["target_id"],
+                            "category_id": None,
+                            "category_name": "",
+                            "assignment_id": assignment["id"],
+                            "class_id": assignment["class_id"],
+                            "workspace_id": assignment["target_workspace_id"],
+                        }
+                    highlight_total += len(listed.get("items", []))
+
+                    workspace_key = str(assignment["target_workspace_id"] or "")
+                    practice_scope.setdefault(
+                        workspace_key, {"categories": set(), "paths": set()}
+                    )["paths"].add(assignment["target_id"])
+                    practice = PracticeStore(get_sqlite_session_store().db_path)
+                    due_ids = await asyncio.to_thread(
+                        practice.queue,
+                        "UTC",
+                        None,
+                        20,
+                        mastery_path_ids=[assignment["target_id"]],
+                    )
+                    for entry_id in due_ids:
+                        queue_key = (workspace_key, int(entry_id))
+                        if queue_key in practice_queue_seen:
+                            continue
+                        entry = await get_sqlite_session_store().get_notebook_entry(
+                            entry_id
+                        )
+                        if entry is None:
+                            continue
+                        state = await asyncio.to_thread(practice.state, entry_id)
+                        practice_queue_seen.add(queue_key)
+                        practice_queue.append(
+                            {
+                                "id": int(entry_id),
+                                "question": str(entry.get("question") or ""),
+                                "question_type": str(entry.get("question_type") or ""),
+                                "is_correct": entry.get("is_correct"),
+                                "result": str(entry.get("result") or ""),
+                                "knowledge_point_id": str(
+                                    entry.get("knowledge_point_id") or ""
+                                ),
+                                "mastery_path_id": assignment["target_id"],
+                                "category_id": None,
+                                "category_name": summary["name"],
+                                "assignment_id": assignment["id"],
+                                "class_id": assignment["class_id"],
+                                "due_at": state.get("due_at"),
+                                "is_mistake": bool(state.get("is_mistake")),
+                                "interval_days": state.get("interval_days"),
+                                "review_count": state.get("review_count", 0),
+                            }
+                        )
+                elif assignment["kind"] == "question_set":
+                    store = get_sqlite_session_store()
+                    category = next(
+                        (
+                            item
+                            for item in await store.list_categories()
+                            if str(item.get("id")) == assignment["target_id"]
+                        ),
+                        None,
+                    )
+                    if category is None:
+                        continue
+                    category_id = int(category["id"])
+                    category_name = str(category.get("name") or "")
+                    target_names[assignment["id"]] = category_name
+                    listed = await store.list_notebook_entries(
+                        category_id=category_id, limit=200
+                    )
+                    entries = listed.get("items", [])
+                    mistakes = sum(
+                        1
+                        for entry in entries
+                        if entry.get("is_correct") in (False, 0)
+                        or str(entry.get("result") or "") == "incorrect"
+                    )
+                    workspace_key = str(assignment["target_workspace_id"] or "")
+                    practice_scope.setdefault(
+                        workspace_key, {"categories": set(), "paths": set()}
+                    )["categories"].add(category_id)
+                    practice = PracticeStore(store.db_path)
+                    due_ids = await asyncio.to_thread(
+                        practice.queue, "UTC", category_id, 20
+                    )
+                    for entry_id in due_ids:
+                        queue_key = (workspace_key, int(entry_id))
+                        if queue_key in practice_queue_seen:
+                            continue
+                        entry = await store.get_notebook_entry(entry_id)
+                        if entry is None:
+                            continue
+                        state = await asyncio.to_thread(practice.state, entry_id)
+                        practice_queue_seen.add(queue_key)
+                        practice_queue.append(
+                            {
+                                "id": int(entry_id),
+                                "question": str(entry.get("question") or ""),
+                                "question_type": str(entry.get("question_type") or ""),
+                                "is_correct": entry.get("is_correct"),
+                                "result": str(entry.get("result") or ""),
+                                "knowledge_point_id": str(
+                                    entry.get("knowledge_point_id") or ""
+                                ),
+                                "mastery_path_id": str(
+                                    entry.get("mastery_path_id") or ""
+                                ),
+                                "category_id": category_id,
+                                "category_name": category_name,
+                                "assignment_id": assignment["id"],
+                                "class_id": assignment["class_id"],
+                                "due_at": state.get("due_at"),
+                                "is_mistake": bool(state.get("is_mistake")),
+                                "interval_days": state.get("interval_days"),
+                                "review_count": state.get("review_count", 0),
+                            }
+                        )
+                    practice_sets.append(
+                        {
+                            "assignment_id": assignment["id"],
+                            "class_id": assignment["class_id"],
+                            "class_name": class_name,
+                            "category_id": category_id,
+                            "name": category_name,
+                            "entry_count": int(category.get("entry_count") or len(entries)),
+                            "mistakes": mistakes,
+                            "due": len(due_ids),
+                        }
+                    )
+                    for entry in entries:
+                        key = (str(assignment["target_workspace_id"] or ""), int(entry["id"]))
+                        if key in highlight_rows:
+                            continue
+                        highlight_rows[key] = {
+                            "id": int(entry["id"]),
+                            "question": str(entry.get("question") or ""),
+                            "question_type": str(entry.get("question_type") or ""),
+                            "is_correct": entry.get("is_correct"),
+                            "result": str(entry.get("result") or ""),
+                            "created_at": entry.get("created_at"),
+                            "knowledge_point_id": str(
+                                entry.get("knowledge_point_id") or ""
+                            ),
+                            "mastery_path_id": str(entry.get("mastery_path_id") or ""),
+                            "category_id": category_id,
+                            "category_name": category_name,
+                            "assignment_id": assignment["id"],
+                            "class_id": assignment["class_id"],
+                            "workspace_id": assignment["target_workspace_id"],
+                        }
+                    highlight_total += int(category.get("entry_count") or len(entries))
+
+        # Practice summary/analytics are computed only over the assigned question
+        # set and topic copies in each workspace, never the private notebook.
+        summary_parts: list[dict] = []
+        analytics_parts: list[dict] = []
+        for workspace_key, scope in practice_scope.items():
+            category_ids = sorted(int(item) for item in scope["categories"])
+            path_ids = sorted(str(item) for item in scope["paths"])
+            if not category_ids and not path_ids:
+                continue
+            try:
+                with workspace_context(workspace_key or None):
+                    practice_store = PracticeStore(
+                        get_sqlite_session_store().db_path
+                    )
+                    summary_parts.append(
+                        await asyncio.to_thread(
+                            practice_store.overview,
+                            "UTC",
+                            None,
+                            category_ids=category_ids,
+                            mastery_path_ids=path_ids,
+                        )
+                    )
+                    analytics_parts.append(
+                        await asyncio.to_thread(
+                            practice_store.analytics,
+                            "UTC",
+                            30,
+                            None,
+                            category_ids=category_ids,
+                            mastery_path_ids=path_ids,
+                        )
+                    )
+            except Exception:
+                continue
+        practice_summary = _merge_practice_summary(summary_parts)
+        practice_analytics = _merge_practice_analytics(analytics_parts)
+
+    conversations.sort(
+        key=lambda item: float(item.get("updated_at") or 0), reverse=True
+    )
+    conversations = conversations[:20]
+    recent_highlights = sorted(
+        highlight_rows.values(),
+        key=lambda item: float(item.get("created_at") or 0),
+        reverse=True,
+    )[:12]
+    recent_highlights = [
+        {key: item[key] for key in item if key != "workspace_id"}
+        for item in recent_highlights
+    ]
+
+    # Courseware visible to the student through the teacher's class workspaces.
+    # The per-book policy and assignment auto-grants decide visibility.
+    from deeptutor.api.routers.book import accessible_books
+    from deeptutor.multi_user.book_access import resolve_book
+
+    courseware: dict[str, dict] = {}
+    for record in records:
+        with classroom.teacher_account_context(record):
+            for workspace_id in classroom.class_workspaces(record):
+                with workspace_context(workspace_id):
+                    for book, _resolved in accessible_books():
+                        if not classroom.book_visible_for_member(
+                            record, book.id, student_id
+                        ):
+                            continue
+                        row = courseware.setdefault(
+                            book.id,
+                            {
+                                "book": book,
+                                "workspace_id": workspace_id,
+                                "class_ids": [],
+                                "class_names": [],
+                            },
+                        )
+                        if record["id"] not in row["class_ids"]:
+                            row["class_ids"].append(record["id"])
+                            row["class_names"].append(record["name"])
+
+    courseware_rows: list[dict] = []
+    with student_context(student_id):
+        for book_id, row in courseware.items():
+            book = row["book"]
+            reading = {
+                "current_page_id": "",
+                "visited_pages": 0,
+                "total_pages": max(0, book.page_count),
+                "percent": 0,
+            }
+            try:
+                with workspace_context(row["workspace_id"]):
+                    resolved = resolve_book(book_id)
+                    if resolved is not None:
+                        reading = resolved.reading_summary(book)
+            except Exception:
+                # A book removed or no longer readable must not break the
+                # student's record; it simply shows no progress.
+                pass
+            courseware_rows.append(
+                {
+                    "book_id": book_id,
+                    "title": getattr(book, "title", "") or book_id,
+                    "workspace_id": row["workspace_id"],
+                    "class_ids": row["class_ids"],
+                    "class_names": row["class_names"],
+                    "reading": reading,
+                }
+            )
+
+    counts = {"mastered": 0, "learning": 0, "new": 0, "total": 0}
+    reviews_due = 0
+    for topic in mastery_topics:
+        for key in counts:
+            counts[key] += int(topic["counts"].get(key, 0))
+        reviews_due += int(topic["due_reviews"])
+
+    assignments_out = [
+        {
+            "id": assignment["id"],
+            "class_id": assignment["class_id"],
+            "class_name": class_names.get(assignment["class_id"], ""),
+            "kind": assignment["kind"],
+            "source_id": assignment["source_id"],
+            "target_id": assignment["target_id"],
+            "target_name": target_names.get(assignment["id"], ""),
+            "status": "revoked" if assignment.get("revoked_at") else "active",
+            "created_at": assignment.get("created_at", ""),
+            "revoked_at": assignment.get("revoked_at"),
+            "workspace_id": assignment.get("target_workspace_id", ""),
+        }
+        for assignment in sorted(
+            assignments, key=lambda item: str(item.get("created_at") or ""), reverse=True
+        )
+    ]
+
+    needs_attention: list[dict] = []
+    if reviews_due:
+        needs_attention.append({"kind": "reviews_due", "count": reviews_due})
+    if counts["total"] and counts["mastered"] / counts["total"] < 0.5:
+        needs_attention.append(
+            {
+                "kind": "low_mastery",
+                "mastered": counts["mastered"],
+                "total": counts["total"],
+            }
+        )
+    if practice_queue:
+        needs_attention.append(
+            {"kind": "practice_due", "count": len(practice_queue)}
+        )
+    if assignments and not conversations:
+        needs_attention.append({"kind": "no_conversations"})
+
+    return {
+        "student": {
+            "id": student_id,
+            "username": info[0],
+            "role": info[1].get("role", "student"),
+        },
+        "classes": [
+            {
+                "id": record["id"],
+                "name": record["name"],
+                "workspace_id": record["workspace_id"],
+            }
+            for record in records
+        ],
+        "assignments": assignments_out,
+        "mastery": {
+            "counts": counts,
+            "due_reviews": reviews_due,
+            "topics": mastery_topics,
+        },
+        "practice": {
+            "summary": practice_summary,
+            "analytics": practice_analytics,
+            "sets": practice_sets,
+            "queue": practice_queue[:20],
+        },
+        "courseware": courseware_rows,
+        "sessions": conversations,
+        "highlights": {
+            "total": highlight_total,
+            "recent": recent_highlights,
+        },
+        "needs_attention": needs_attention,
+    }
+
+
+@router.get("/students/{student_id}/topics/{path_id}/objectives/{kp_id}")
+async def view_student_objective(
+    student_id: str, path_id: str, kp_id: str, _: object = Depends(require_teacher)
+) -> dict:
+    """Evidence behind one objective of an assigned mastery copy.
+
+    Reuses the learner-facing report (questions joined, answer keys redacted)
+    but first proves a live assignment grants the teacher reach into the copy.
+    """
+    _require_mode()
+    from deeptutor.api.routers.mastery_path import get_objective_report
+    from deeptutor.services.classroom.assignments import student_context
+
+    record = _live_assignment_or_403("mastery_topic", student_id, path_id)
+    with student_context(student_id):
+        with workspace_context(record["target_workspace_id"] or None):
+            return await get_objective_report(path_id, kp_id)
 
 
 @router.get("/classes/{class_id}/workspaces")

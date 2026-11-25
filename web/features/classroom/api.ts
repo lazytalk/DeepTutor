@@ -418,3 +418,266 @@ export const patchStudentEntry = (sid: string, entry: number, body: { question?:
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   }).then((r) => json<{ ok: boolean }>(r));
+
+export interface StudentRecordStudent {
+  id: string;
+  username: string;
+  role: string;
+}
+
+export interface StudentRecordClass {
+  id: string;
+  name: string;
+  workspace_id: string;
+}
+
+export type AssignmentStatus = "active" | "revoked";
+
+export interface StudentRecordAssignment {
+  id: string;
+  class_id: string;
+  class_name: string;
+  kind: "mastery_topic" | "question_set";
+  source_id: string;
+  target_id: string;
+  target_name: string;
+  status: AssignmentStatus;
+  created_at: string;
+  revoked_at: string | null;
+  workspace_id: string;
+}
+
+export interface MasteryKnowledgePoint {
+  id: string;
+  name: string;
+  type: string;
+  status: "mastered" | "learning" | "new" | string;
+  mastery: number;
+  mastery_source: string;
+  override_note: string;
+  deferred: boolean;
+  prerequisite_ids?: string[];
+  topic_source_ids?: string[];
+}
+
+export interface MasteryModule {
+  id: string;
+  name: string;
+  objective: string;
+  order: number;
+  mastered: number;
+  total: number;
+  knowledge_points: MasteryKnowledgePoint[];
+}
+
+export interface MasteryNextStep {
+  action: string;
+  module_id: string;
+  module_name: string;
+  knowledge_point_id: string;
+  knowledge_point_name: string;
+  knowledge_point_type: string;
+  status: string;
+  gate: string;
+  mastery: number;
+  threshold: number;
+  reason: string;
+}
+
+export interface MasteryTopicRecord {
+  assignment_id: string;
+  class_id: string;
+  class_name: string;
+  path_id: string;
+  name: string;
+  counts: { mastered: number; learning: number; new: number; total: number };
+  due_reviews: number;
+  complete: boolean;
+  next: MasteryNextStep;
+  modules: MasteryModule[];
+  session_count: number;
+  updated_at: number;
+  workspace_id: string;
+}
+
+export interface MasteryRecord {
+  counts: { mastered: number; learning: number; new: number; total: number };
+  due_reviews: number;
+  topics: MasteryTopicRecord[];
+}
+
+export interface PracticeSetRecord {
+  assignment_id: string;
+  class_id: string;
+  class_name: string;
+  category_id: number;
+  name: string;
+  entry_count: number;
+  mistakes: number;
+  due: number;
+}
+
+export interface PracticeQueueItem {
+  id: number;
+  question: string;
+  question_type: string;
+  is_correct: boolean | number | null;
+  result: string;
+  knowledge_point_id: string;
+  mastery_path_id: string;
+  category_id: number | null;
+  category_name: string;
+  assignment_id: string;
+  class_id: string;
+  due_at: number | null;
+  is_mistake: boolean;
+  interval_days: number | null;
+  review_count: number;
+}
+
+export interface PracticeSummary {
+  total?: number;
+  mistakes?: number;
+  due?: number;
+  overdue?: number;
+  reviewed_today?: number;
+  next_due_at?: number | null;
+  timezone?: string;
+}
+
+export interface PracticeAnalyticsCounts {
+  questions: number;
+  mistakes: number;
+  reviews: number;
+}
+
+export interface PracticeAnalytics {
+  timezone?: string;
+  days?: number;
+  start_date?: string;
+  end_date?: string;
+  daily?: Array<PracticeAnalyticsCounts & { date: string }>;
+  sources?: Array<PracticeAnalyticsCounts & { source: string }>;
+  totals?: PracticeAnalyticsCounts;
+}
+
+export interface PracticeRecord {
+  summary: PracticeSummary;
+  analytics: PracticeAnalytics;
+  sets: PracticeSetRecord[];
+  queue: PracticeQueueItem[];
+}
+
+export interface CoursewareReading {
+  current_page_id: string;
+  visited_pages: number;
+  total_pages: number;
+  percent: number;
+}
+
+export interface CoursewareRecord {
+  book_id: string;
+  title: string;
+  workspace_id: string;
+  class_ids: string[];
+  class_names: string[];
+  reading: CoursewareReading;
+}
+
+export interface StudentSessionRecord {
+  session_id: string;
+  title: string;
+  created_at: number;
+  updated_at: number;
+  capability: string;
+  message_count: number;
+  class_id: string;
+  class_name: string;
+  assignment_id: string;
+  topic_id: string;
+  topic_name: string;
+}
+
+export interface HighlightRecord {
+  id: number;
+  question: string;
+  question_type: string;
+  is_correct: boolean | number | null;
+  result: string;
+  created_at: number;
+  knowledge_point_id: string;
+  mastery_path_id: string;
+  category_id: number | null;
+  category_name: string;
+  assignment_id: string;
+  class_id: string;
+}
+
+export interface RecordAttention {
+  kind: string;
+  count?: number;
+  mastered?: number;
+  total?: number;
+}
+
+export interface StudentRecordPayload {
+  student: StudentRecordStudent;
+  classes: StudentRecordClass[];
+  assignments: StudentRecordAssignment[];
+  mastery: MasteryRecord;
+  practice: PracticeRecord;
+  courseware: CoursewareRecord[];
+  sessions: StudentSessionRecord[];
+  highlights: { total: number; recent: HighlightRecord[] };
+  needs_attention: RecordAttention[];
+}
+
+export interface ObjectiveAttempt {
+  question_id: string;
+  prompt?: string;
+  is_correct: boolean;
+  independent: boolean;
+  answer: string;
+  error_type: string;
+  at: number;
+}
+
+export interface ObjectiveReport {
+  id: string;
+  name: string;
+  type: string;
+  module_id: string;
+  module_name: string;
+  status: string;
+  gate: string;
+  mastered: boolean;
+  assessed_mastered: boolean;
+  mastery_source: string;
+  override_note: string;
+  mastery: number;
+  threshold: number;
+  attempts: ObjectiveAttempt[];
+  correct_count: number;
+  explanation: string;
+  explained: boolean | null;
+  errors: Array<{
+    id: string;
+    error_type: string;
+    status: string;
+    self_attribution: string;
+    retries: number;
+    created_at: number;
+  }>;
+  review: Record<string, unknown> | null;
+  evidence_count?: number;
+}
+
+/** Teachers: one class-scoped learning record across all owned classes. */
+export const studentRecord = (sid: string) =>
+  apiFetch(`/api/classroom/students/${sid}/record`).then((r) => json<StudentRecordPayload>(r));
+
+/** Teachers: evidence behind one objective of an assigned mastery copy. */
+export const studentObjectiveEvidence = (sid: string, pathId: string, kpId: string) =>
+  apiFetch(
+    `/api/classroom/students/${sid}/topics/${encodeURIComponent(pathId)}/objectives/${encodeURIComponent(kpId)}`,
+  ).then((r) => json<{ book_id: string; path_revision: number; objective: ObjectiveReport }>(r));

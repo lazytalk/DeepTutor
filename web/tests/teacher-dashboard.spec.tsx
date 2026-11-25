@@ -127,9 +127,11 @@ describe('TeacherDashboard', () => {
     fireEvent.click(within(math).getByText('Open class →'))
     expect(onOpenClass).toHaveBeenCalledWith('c1')
 
-    fireEvent.click(within(math).getByTestId('dashboard-student-c1-s1'))
-    expect(await screen.findByText('alice · Assigned work')).toBeInTheDocument()
-    expect(screen.getByText('← Back to overview')).toBeInTheDocument()
+    expect(within(math).getByTestId('dashboard-student-c1-s1')).toHaveAttribute(
+      'href',
+      '/classroom/record/s1',
+    )
+    expect(within(math).getByText('Learning record →')).toBeInTheDocument()
   })
 })
 
