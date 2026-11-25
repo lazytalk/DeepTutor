@@ -184,7 +184,7 @@ export function ClassicLearningDashboard() {
           {!recent.length && failed.length === 0 && (
             <LearningEmptyState
               title={t('Your next learning journey starts here')}
-              description={t('Choose a book, a topic, a collection or a video to begin.')}
+              description={t('Choose courseware, a topic, a collection or a video to begin.')}
             />
           )}
         </>

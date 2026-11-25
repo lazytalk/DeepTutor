@@ -31,6 +31,6 @@ it("AI proposals from an earlier revision cannot be applied", async () => {
   const label = await screen.findByText("Limits");
   fireEvent.click(label);
   expect(screen.getByText("Apply reviewed edit")).toBeDisabled();
-  expect(screen.getByText("Book changed; request a new proposal.")).toBeVisible();
+  expect(screen.getByText("Courseware changed; request a new proposal.")).toBeVisible();
   expect(api.applyEdit).not.toHaveBeenCalled();
 });

@@ -789,7 +789,7 @@ export default function NoteWorkspace({
         <FavoritesPicker
           onSynthesize={sources =>
             askAtCursor(
-              `${t('Organize these favorites into a coherent note. Cite the source of each section.')}\n\n${sources}`
+              `${t('Organize these highlights into a coherent note. Cite the source of each section.')}\n\n${sources}`
             )
           }
           onClose={() => setFavorites(false)}

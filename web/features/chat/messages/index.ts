@@ -7,4 +7,5 @@ export {
   RoughActionButton,
   UserMessage,
   getModeBadgeLabel,
+  type ChatMessageItem,
 } from "./ChatMessageList";

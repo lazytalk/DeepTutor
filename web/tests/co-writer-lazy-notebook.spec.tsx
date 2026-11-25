@@ -47,8 +47,8 @@ it("opens and closes the dynamically loaded notebook picker without changing the
   try {
     render(<CoWriterWorkspace docId="document-1" />);
     expect(await screen.findByDisplayValue("Existing draft content")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Save to Notebook" }));
-    const dialog = await screen.findByRole("dialog", { name: "Save to Notebook" });
+    fireEvent.click(screen.getByRole("button", { name: "Save to Highlights" }));
+    const dialog = await screen.findByRole("dialog", { name: "Save to Highlights" });
     expect(await within(dialog).findByText("My notebook")).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());

@@ -4,7 +4,7 @@ import { apiFetch, apiUrl } from "@/lib/api";
 //
 // Favorites live at /notebooks in the product and under /api/notebooks in the
 // transport. They collect saved output from chat, research
-// and Co-Writer (written by SaveToNotebookModal, read back by
+// and Manuscript (written by SaveToNotebookModal, read back by
 // NotebookRecordPicker). They are a different feature from the Question
 // Bank at /space/questions further down this file, which only tracks quiz
 // entries — the two share the "notebook" word in their API paths for

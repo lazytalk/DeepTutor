@@ -139,7 +139,7 @@ export default function ClassroomConsole() {
     setError("");
     try {
       await setBookAccess(selected.id, { default: access });
-      setNotice(t("Book access updated."));
+      setNotice(t("Courseware access updated."));
       const catalog = await listClassBooks(selected.id);
       setBooks(catalog.books);
       setBookDefault(catalog.default);
@@ -155,7 +155,7 @@ export default function ClassroomConsole() {
     try {
       await setBookAccess(selected.id, { books: { [bookId]: access } });
       setBooks((prev) => prev.map((book) => (book.book_id === bookId ? { ...book, access } : book)));
-      setNotice(t("Book access updated."));
+      setNotice(t("Courseware access updated."));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -186,7 +186,7 @@ export default function ClassroomConsole() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-4 px-6 py-8">
+    <div className="mx-auto flex h-full w-full max-w-[960px] flex-col gap-4 overflow-y-auto px-6 py-8">
       <header className="flex flex-wrap items-center gap-2">
         <School size={20} strokeWidth={1.7} />
         <h1 className="font-serif text-xl font-semibold">{t("Classroom")}</h1>
@@ -462,7 +462,7 @@ export default function ClassroomConsole() {
       {isTeacher && tab === "classes" && selected && (
         <section className={panel}>
           <h2 className="mb-2 flex items-center gap-1.5 text-sm font-medium">
-            <BookOpen size={15} /> {t("Book access")}
+            <BookOpen size={15} /> {t("Courseware access")}
           </h2>
           <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
             <span className="text-xs text-[var(--muted-foreground)]">{t("Default access")}</span>
@@ -478,7 +478,7 @@ export default function ClassroomConsole() {
           </div>
           {bookGroups.length === 0 && (
             <p className="text-sm text-[var(--muted-foreground)]">
-              {t("No books in the class workspaces.")}
+              {t("No courseware in the class workspaces.")}
             </p>
           )}
           <div className="flex flex-col gap-3">
@@ -508,7 +508,7 @@ export default function ClassroomConsole() {
             ))}
           </div>
           <p className="mt-3 text-xs text-[var(--muted-foreground)]">
-            {t("Assigning a topic sourced from a book auto-grants read access to assigned students unless explicitly hidden.")}
+            {t("Assigning a topic sourced from courseware auto-grants read access to assigned students unless explicitly hidden.")}
           </p>
         </section>
       )}

@@ -6,7 +6,7 @@ it('keeps old feature URLs in their new categories', () => {
   // A conversation belongs to Chat; the blank /chat is Home's overview.
   expect(categoryForPath('/chat/old-session')).toBe('chat')
   // Co-Writer's writing canvas is /co-writer; /notebooks is the saved
-  // records "Notebook" collection.
+  // records "Highlights" collection.
   for (const path of ['/co-writer/old-document'])
     expect(categoryForPath(path)).toBe('notebook')
   for (const path of ['/kanban'])

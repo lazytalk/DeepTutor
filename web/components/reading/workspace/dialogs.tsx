@@ -164,13 +164,13 @@ export function NotebookCaptureDialog({
         setError(
           caught instanceof Error
             ? caught.message
-            : t("Could not load notebooks."),
+            : t("Could not load highlights."),
         ),
       )
       .finally(() => setLoading(false));
   }, [t]);
   return (
-    <ModalShell title={t("Send reading notes to Notebook")} onClose={onClose}>
+    <ModalShell title={t("Send reading notes to Highlights")} onClose={onClose}>
       <p className="text-[11px] leading-relaxed text-[var(--muted-foreground)]">
         {t(
           "Highlights and notes are organized by source and locator before they are copied. Your material stays private in the reading workspace.",
@@ -214,7 +214,7 @@ export function NotebookCaptureDialog({
           })
         ) : (
           <p className="py-8 text-center text-[11px] text-[var(--muted-foreground)]">
-            {t("Create a Notebook first.")}
+            {t("Create a highlights group first.")}
           </p>
         )}
       </div>
@@ -244,7 +244,7 @@ export function NotebookCaptureDialog({
           className="flex h-9 items-center gap-2 rounded-xl bg-[var(--primary)] px-4 text-[11px] font-semibold text-[var(--primary-foreground)] disabled:opacity-50"
         >
           {saving && <Loader2 size={12} className="animate-spin" />}
-          {t("Send to Notebook")}
+          {t("Send to Highlights")}
         </button>
       </div>
     </ModalShell>

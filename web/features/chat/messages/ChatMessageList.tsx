@@ -168,7 +168,7 @@ const VideoLessonViewer = dynamic(
 );
 
 
-interface ChatMessageItem {
+export interface ChatMessageItem {
   id?: number;
   role: "user" | "assistant" | "system";
   content: string;
@@ -744,6 +744,7 @@ export const AssistantMessage = memo(function AssistantMessage({
   masteryGrades,
   masterySkips,
   masteryAnswerRejections,
+  readOnly = false,
 }: {
   msg: {
     id?: number;
@@ -810,6 +811,9 @@ export const AssistantMessage = memo(function AssistantMessage({
     questionId: string,
   ) => void | boolean | Promise<void | boolean>;
   onChallengeMasteryQuestion?: (questionId: string) => void | boolean | Promise<void | boolean>;
+  /** Historical surfaces (teacher review) render every card as recorded:
+   *  no answer/submit controls and no write paths. */
+  readOnly?: boolean;
 }) {
   const { t } = useTranslation();
   const events = useMemo(() => msg.events ?? [], [msg.events]);
@@ -944,6 +948,7 @@ export const AssistantMessage = memo(function AssistantMessage({
           }
           onSkip={onSkipMasteryQuestion}
           onChallenge={onChallengeMasteryQuestion}
+          readOnly={readOnly}
         />
       );
     },
@@ -954,6 +959,7 @@ export const AssistantMessage = memo(function AssistantMessage({
       onAnswerMasteryQuestion,
       onSkipMasteryQuestion,
   onChallengeMasteryQuestion,
+      readOnly,
     ],
   );
   // Set by ``request_credential`` when a configuration step needs a secret the
@@ -1187,6 +1193,7 @@ export const AssistantMessage = memo(function AssistantMessage({
               onSubmit={submitReply}
               collapsible={researchInProgress}
               defaultCollapsed={researchInProgress}
+              readOnly={readOnly}
             />
           ) : null}
           <ResearchOutlineEditor
@@ -1257,6 +1264,7 @@ export const AssistantMessage = memo(function AssistantMessage({
             sessionId={sessionId}
             turnId={quizTurnId}
             language={language}
+            readOnly={readOnly}
           />
         </>
       ) : useSegmentLayout ? (
@@ -1285,6 +1293,7 @@ export const AssistantMessage = memo(function AssistantMessage({
                 key={block.key}
                 data={block.segment.data}
                 onSubmit={submitReply}
+                readOnly={readOnly}
               />
             ) : block.segment.kind === "user_input" ? (
               <SentMidTurn key={block.key} messages={block.segment.messages} />
@@ -1327,7 +1336,7 @@ export const AssistantMessage = memo(function AssistantMessage({
       !hasInlineCards &&
       !latestMasteryQuestion &&
       askUserPayload ? (
-        <AskUserOptions data={askUserPayload} onSubmit={submitReply} />
+        <AskUserOptions data={askUserPayload} onSubmit={submitReply} readOnly={readOnly} />
       ) : null}
       {/* Credential hand-off sits below whichever body branch rendered: it
           supplements the answer ("here's where to paste the key") rather than
@@ -1690,7 +1699,7 @@ export const UserMessage = memo(function UserMessage({
     ...(snap?.bookReferences ?? []).map((ref): ContextTreeItem => ({
       key: `book-${ref.book_id}`,
       icon: BookOpen,
-      kind: t("Book"),
+      kind: t("Courseware"),
       label: `${ref.page_ids.length} ${t("chapters")}`,
     })),
     ...(snap?.readingReferences ?? []).map((ref): ContextTreeItem => ({
@@ -1702,7 +1711,7 @@ export const UserMessage = memo(function UserMessage({
     ...(snap?.notebookReferences ?? []).map((ref): ContextTreeItem => ({
       key: `nb-${ref.notebook_id}`,
       icon: BookOpen,
-      kind: t("Notebook"),
+      kind: t("Highlights"),
       label: `${ref.record_ids.length} ${t("records")}`,
     })),
     // Imported agent conversations are folded into the same history_references

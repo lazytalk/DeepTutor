@@ -77,7 +77,7 @@ it("acts on the open conversation like its sidebar row, plus save and export", a
   for (const name of ["Rename chat", "Pin", "Archive", "General workspace", "Algebra", "Delete chat"]) {
     expect(screen.getByRole("menuitem", { name })).toBeInTheDocument();
   }
-  expect(screen.getByRole("menuitem", { name: "Save to Notebook" })).toBeEnabled();
+  expect(screen.getByRole("menuitem", { name: "Save to Highlights" })).toBeEnabled();
   expect(screen.getByRole("menuitem", { name: "Download Markdown" })).toBeDisabled();
 
   await act(async () => {

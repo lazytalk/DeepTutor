@@ -1,6 +1,6 @@
 const FENCE = "```";
 
-export const CO_WRITER_SAMPLE_TEMPLATE = `# Kaiwen Crane Tutor Co-Writer
+export const CO_WRITER_SAMPLE_TEMPLATE = `# Kaiwen Crane Tutor Manuscript
 
 > Kaiwen Crane Tutor's built-in writing canvas for notes, reports, tutorials, and AI-assisted drafts.
 
@@ -43,7 +43,7 @@ The <abbr title="Large Language Model">LLM</abbr> layer powers Kaiwen Crane Tuto
 
 ### Links
 
-[Kaiwen Crane Tutor Co-Writer](#kaiwen-crane-tutor-co-writer "co-writer section")
+[Kaiwen Crane Tutor Manuscript](#kaiwen-crane-tutor-manuscript "manuscript section")
 
 [Kaiwen Crane Tutor Learning Note](#kaiwen-crane-tutor-learning-note)
 
@@ -113,7 +113,7 @@ ${FENCE}
 ### Lists
 
 - Kaiwen Crane Tutor Chat
-- Kaiwen Crane Tutor Co-Writer
+- Kaiwen Crane Tutor Manuscript
 - Kaiwen Crane Tutor Research
 
 1. Draft a concept note
@@ -124,7 +124,7 @@ ${FENCE}
 
 Feature       | Description
 ------------- | -------------
-Co-Writer     | Draft and refine Markdown content
+Manuscript     | Draft and refine Markdown content
 Chat          | Ask questions and iterate ideas
 Research      | Build structured multi-step reports
 

@@ -1655,6 +1655,30 @@ class SQLiteSessionStore:
     async def list_active_turns(self, session_id: str) -> list[dict[str, Any]]:
         return await self._run(self._list_active_turns_sync, session_id)
 
+    def _list_turns_sync(self, session_id: str) -> list[dict[str, Any]]:
+        """Every turn in a session, oldest first — the review timeline.
+
+        Unlike ``list_active_turns`` this deliberately keeps terminal turns:
+        a teacher reviewing a finished conversation needs the whole history,
+        not just whatever is still running.
+        """
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT
+                    t.*,
+                    COALESCE((SELECT MAX(seq) FROM turn_events te WHERE te.turn_id = t.id), 0) AS last_seq
+                FROM turns t
+                WHERE t.session_id = ?
+                ORDER BY t.created_at ASC, t.id ASC
+                """,
+                (session_id,),
+            ).fetchall()
+        return [self._serialize_turn(row) for row in rows]
+
+    async def list_turns(self, session_id: str) -> list[dict[str, Any]]:
+        return await self._run(self._list_turns_sync, session_id)
+
     def _list_orphaned_failed_turns_sync(self, session_id: str) -> list[dict[str, Any]]:
         with self._connect() as conn:
             rows = conn.execute(

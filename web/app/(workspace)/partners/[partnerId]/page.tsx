@@ -526,12 +526,12 @@ function PartnerDetail() {
               </button>
             </Tooltip>
           ) : null}
-          <Tooltip label={t("Save to Notebook")}>
+          <Tooltip label={t("Save to Highlights")}>
             <button
               type="button"
               onClick={() => setShowSaveModal(true)}
               disabled={!canExport}
-              aria-label={t("Save to Notebook")}
+              aria-label={t("Save to Highlights")}
               className="rounded-md p-1.5 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <BookmarkPlus className="h-4 w-4" />
@@ -826,7 +826,7 @@ function PartnerDetail() {
         onClose={() => setShowSaveModal(false)}
         onSaved={() => {
           setShowSaveModal(false);
-          setToast(t("Saved to notebook."));
+          setToast(t("Saved to Highlights."));
         }}
       />
 

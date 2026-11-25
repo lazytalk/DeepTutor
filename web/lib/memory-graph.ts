@@ -747,12 +747,12 @@ function placeNodesInSlice<T extends { x: number; y: number; r: number }>(
 
 export const SURFACE_LABEL: Record<Surface, string> = {
   chat: "Chat",
-  notebook: "Notebook",
+  notebook: "Highlights",
   quiz: "Quiz",
   kb: "Knowledge base",
-  book: "Book",
+  book: "Courseware",
   partner: "Partner",
-  cowriter: "Co-writer",
+  cowriter: "Manuscript",
 };
 
 export const L3_LABEL: Record<L3Slot, string> = {

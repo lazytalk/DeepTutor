@@ -139,14 +139,14 @@ it('a way introduces itself before it commits you, and hands focus back', async 
 it('feature introductions do not show personal activity or source failures', async () => {
   mock.reading.mockRejectedValue(new Error('offline'))
   render(<LearningWays />)
-  const books = screen.getByRole('button', { name: /Books/ })
+  const books = screen.getByRole('button', { name: /Courseware/ })
   expect(books).not.toHaveTextContent('Home')
   const reading = screen.getByRole('button', { name: /Immersive Reading/ })
   expect(reading).not.toHaveTextContent('Nothing here yet.')
   expect(reading).not.toHaveTextContent('Could not be loaded just now.')
   fireEvent.click(books)
   expect(screen.getByRole('dialog')).not.toHaveTextContent('Home')
-  expect(screen.getByRole('dialog')).not.toHaveTextContent('{{count}} books')
+  expect(screen.getByRole('dialog')).not.toHaveTextContent('{{count}} courseware')
 })
 
 it('contains focus and restores background interaction on Escape', async () => {
@@ -170,7 +170,7 @@ it('contains focus and restores background interaction on Escape', async () => {
 })
 
 it.each([
-  ['Books', '/learning/books'],
+  ['Courseware', '/learning/books'],
   ['Mastery Path', '/learning/mastery'],
   ['Immersive Reading', '/learning/reading'],
 ])('opens the complete library without assigning a workspace for %s', async (label, route) => {

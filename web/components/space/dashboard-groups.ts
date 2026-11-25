@@ -105,13 +105,14 @@ export const DASHBOARD_GROUPS: DashboardGroup[] = [
         key: "notebooks",
         href: "/notebooks",
         icon: Bookmark,
-        // "Notebook" is the saved-records collection that mastery/book sources
-        // read. The writing canvas is Co-Writer (/co-writer). "Favorites"
-        // remains a discoverable alias (see the /notebooks page subtitle).
-        title: { zh: "笔记本", en: "Notebook" },
+        // "Highlights" is the saved-records collection that mastery/book
+        // sources read: the keep-worthy parts of learning conversations and
+        // readings (chat, solve, question, research, co_writer, tutorbot),
+        // grouped for reuse. The writing canvas is Manuscript (/co-writer).
+        title: { zh: "精华", en: "Highlights" },
         blurb: {
-          zh: "收藏对话和资料的原文，随时引用到笔记本。",
-          en: "Keep original conversations and sources, ready to use in your notes.",
+          zh: "收藏的对话与摘录，按组整理备用。",
+          en: "Saved conversations & excerpts, grouped for reuse.",
         },
         unit: { zh: "个收藏夹", en: "collections" },
         tile: "bg-amber-500/10 text-amber-600 dark:text-amber-400",

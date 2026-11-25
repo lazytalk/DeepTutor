@@ -190,7 +190,7 @@ export default function BookHealthBanner({
           {explorationFailed && (
             <div>
               <strong>
-                {t("This book was written without reading your sources.")}
+                {t("This courseware was written without reading your sources.")}
               </strong>{" "}
               <span>
                 {t(
@@ -236,7 +236,7 @@ export default function BookHealthBanner({
             <div>
               <strong>
                 {t(
-                  "Your knowledge bases changed since this book was generated.",
+                  "Your knowledge bases changed since this courseware was generated.",
                 )}
               </strong>{" "}
               <span className="opacity-90">

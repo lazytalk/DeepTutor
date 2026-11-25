@@ -56,9 +56,9 @@ export default function NotebookRecordPicker({
           resourceKind="notebooks"
           icon={Layers}
           titleId="notebook-picker-title"
-          title={t("Select Notebook Records")}
+          title={t("Select highlights records")}
           subtitle={t(
-            "Choose records across one or more notebooks to ground the next request.",
+            "Choose records across one or more highlights groups to ground the next request.",
           )}
           onClose={onClose}
         />

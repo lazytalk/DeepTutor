@@ -272,7 +272,7 @@ export default function CoWriterHomePage() {
         icon={PenLine}
         // Co-Writer is the writing canvas; "notebook" names the separate
         // saved-records collection at /notebooks.
-        title={t("Co-Writer")}
+        title={t("Manuscript")}
         description={t("Pages for what you are learning — write, link, and study them with Dito.")}
         action={
           <div className="flex shrink-0 items-center gap-2">
@@ -310,7 +310,7 @@ export default function CoWriterHomePage() {
       ) : pages.length === 0 ? (
         <div className="dt-notes-empty">
           <span aria-hidden>📓</span>
-          <h2>{t("Your notebook is empty")}</h2>
+          <h2>{t("No manuscripts yet")}</h2>
           <p>{t("Start a page for a topic, a lecture or a paper. Dito can help you write and turn it into practice.")}</p>
           <div>
             <button

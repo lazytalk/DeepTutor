@@ -148,12 +148,12 @@ interface SurfaceMeta {
 
 const SURFACE_META: Record<Surface, SurfaceMeta> = {
   chat: { icon: MessageSquare, label: "Chat" },
-  notebook: { icon: NotebookPen, label: "Notebook" },
+  notebook: { icon: NotebookPen, label: "Highlights" },
   quiz: { icon: ClipboardList, label: "题库" },
   kb: { icon: BookOpen, label: "Knowledge base" },
-  book: { icon: Library, label: "Book" },
+  book: { icon: Library, label: "Courseware" },
   partner: { icon: Bot, label: "Partner" },
-  cowriter: { icon: PenLine, label: "Co-writer" },
+  cowriter: { icon: PenLine, label: "Manuscript" },
 };
 
 const L3_LABELS: Record<string, string> = {

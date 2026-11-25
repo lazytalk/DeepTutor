@@ -93,9 +93,9 @@ export default function NotePageTree({
     <nav id="note-page-tree" className="dt-note-page-tree" aria-label={t('Page tree')}>
       <div className="dt-note-tree-heading">
         {embedded ? (
-          <span>{t('Learning notebook')}</span>
+          <span>{t('Manuscript')}</span>
         ) : (
-          <Link href="/co-writer">{t('Learning notebook')}</Link>
+          <Link href="/co-writer">{t('Manuscript')}</Link>
         )}
         <Tooltip label={t('New page')}>
           <button

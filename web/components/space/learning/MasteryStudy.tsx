@@ -652,13 +652,13 @@ export function MasteryStudy({
         />
 
         <div className="flex shrink-0 items-center gap-1.5 pl-2">
-          <Tooltip label={t("Save to Notebook")}>
+          <Tooltip label={t("Save to Highlights")}>
             <button
               type="button"
               onClick={() => setShowSaveModal(true)}
               disabled={!notebookSavePayload}
               className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)]/60 hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label={t("Save to Notebook")}
+              aria-label={t("Save to Highlights")}
             >
               <BookmarkPlus className="h-4 w-4" />
             </button>

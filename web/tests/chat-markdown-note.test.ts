@@ -61,7 +61,7 @@ test("saved markdown notes compare trimmed titles and exact content", () => {
   );
 });
 
-test("the first markdown-note save creates a Co-Writer document", async () => {
+test("the first markdown-note save creates a Manuscript document", async () => {
   const created: string[] = [];
   const updated: string[] = [];
   const store: ChatMarkdownNoteStore = {
@@ -90,7 +90,7 @@ test("the first markdown-note save creates a Co-Writer document", async () => {
   });
 });
 
-test("later markdown-note saves update the existing Co-Writer document", async () => {
+test("later markdown-note saves update the existing Manuscript document", async () => {
   const created: string[] = [];
   const updated: Array<{ docId: string; payload: string }> = [];
   const store: ChatMarkdownNoteStore = {

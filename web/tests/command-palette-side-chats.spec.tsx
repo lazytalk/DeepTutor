@@ -67,13 +67,13 @@ it("finds a Little Tutor thread from another conversation", () => {
   expect(screen.getAllByText("Fork and exec").length).toBeGreaterThan(0);
 });
 
-it("keeps the Favorites alias for /notebooks and the Notebook alias for Co-Writer searchable", () => {
+it("matches only the current names — no Favorites or Notebook aliases", () => {
   render(
     <CommandPalette
       open
       onClose={vi.fn()}
       categories={[
-        { id: "notebook", label: "navigation.notebook", href: "/co-writer", icon: PenLine },
+        { id: "notebook", label: "navigation.manuscript", href: "/co-writer", icon: PenLine },
       ]}
       allowedSurfaces={null}
       sessions={[]}
@@ -83,12 +83,18 @@ it("keeps the Favorites alias for /notebooks and the Notebook alias for Co-Write
   );
 
   const input = screen.getByRole("combobox");
-  fireEvent.change(input, { target: { value: "Favorites" } });
-  expect(screen.getByRole("option", { name: /Notebook/ })).toBeTruthy();
-  expect(screen.queryByRole("option", { name: /Co-Writer/ })).toBeNull();
+  // Legacy aliases no longer resolve to anything.
+  for (const legacy of ["Favorites", "Notebook", "Co-Writer", "Books"]) {
+    fireEvent.change(input, { target: { value: legacy } });
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+  }
 
-  fireEvent.change(input, { target: { value: "Notebook" } });
-  const names = screen.getAllByRole("option").map(option => option.textContent);
-  expect(names.some(name => name?.includes("Co-Writer"))).toBe(true);
-  expect(names.some(name => name?.includes("Notebook"))).toBe(true);
+  fireEvent.change(input, { target: { value: "Highlights" } });
+  let names = screen.getAllByRole("option").map(option => option.textContent);
+  expect(names.some(name => name?.includes("Highlights"))).toBe(true);
+
+  fireEvent.change(input, { target: { value: "Manuscript" } });
+  names = screen.getAllByRole("option").map(option => option.textContent);
+  expect(names.some(name => name?.includes("Manuscript"))).toBe(true);
+  expect(names.some(name => name?.includes("Notebook"))).toBe(false);
 });

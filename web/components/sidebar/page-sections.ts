@@ -72,7 +72,7 @@ export function pageSections({
         { href: '/classroom', label: t('Classroom'), icon: School, account: true },
         { href: '/calendar', label: t('Calendar'), icon: CalendarDays, account: true },
         { href: '/kanban', label: t('Task Board'), icon: Columns3 },
-        { href: '/co-writer', label: t('Co-Writer'), icon: PenLine },
+        { href: '/co-writer', label: t('Manuscript'), icon: PenLine },
       ].filter(page => navVisibleUnderPolicy(page.href, allowedSurfaces)),
     },
     {
@@ -120,7 +120,7 @@ export function pageSections({
 
 /**
  * Views whose working toolbar carries the location itself — the reader's
- * bar sits over the document column only, Co-Writer's over the page —
+ * bar sits over the document column only, Manuscript's over the page —
  * so they draw the same crumbs there (see `useShelfFeature`) instead of
  * under a second bar.
  */

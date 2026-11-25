@@ -43,7 +43,7 @@ it("opens the record editor directly without opening the row menu", async () => 
   const onEdit = vi.fn().mockResolvedValue(undefined);
   renderRow(onEdit);
 
-  const editButton = screen.getByRole("button", { name: "Edit favorite details" });
+  const editButton = screen.getByRole("button", { name: "Edit highlight details" });
   expect(editButton).toBeVisible();
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
 

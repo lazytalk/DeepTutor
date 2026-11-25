@@ -63,7 +63,7 @@ test("backend proxy allows long-running agent requests", () => {
   };
   assert.ok(
     (nextConfig.experimental?.proxyTimeout ?? 0) >= 30 * 60 * 1000,
-    "proxyTimeout must accommodate long PageIndex and Co-Writer turns",
+    "proxyTimeout must accommodate long PageIndex and Manuscript turns",
   );
 });
 

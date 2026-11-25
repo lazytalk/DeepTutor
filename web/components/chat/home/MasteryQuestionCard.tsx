@@ -114,6 +114,9 @@ interface MasteryQuestionCardProps {
    *  cannot start a turn of its own, which hides the control entirely. */
   onSkip?: (questionId: string) => void | boolean | Promise<void | boolean>;
   onChallenge?: (questionId: string) => void | boolean | Promise<void | boolean>;
+  /** Historical surfaces (teacher review) render the card as recorded:
+   *  options stay locked and no answer/submit footer is offered. */
+  readOnly?: boolean;
 }
 
 /** The same native controls, with submission owned by their group instead. */
@@ -124,7 +127,7 @@ interface GroupInput {
 
 const SingleMasteryQuestionCard = memo(function SingleMasteryQuestionCard({
   question, grade, answered, skipped, submittedAnswer, onSubmit, onSkip,
-  onChallenge, groupInput, rejectionKey,
+  onChallenge, groupInput, rejectionKey, readOnly = false,
 }: MasteryQuestionCardProps & { groupInput?: GroupInput }) {
   const { t } = useTranslation();
   const [picked, setPicked] = useState<string>(() => grade?.final === false ? grade.learnerAnswer : "");
@@ -145,7 +148,7 @@ const SingleMasteryQuestionCard = memo(function SingleMasteryQuestionCard({
   const answer = usesFreeText ? freeText.trim() : picked;
   // Skipping settles the card exactly as answering does: the engine closed the
   // question, so there is nothing left on it to send.
-  const settled = (answered && grade?.final !== false) || skipped === true;
+  const settled = readOnly || (answered && grade?.final !== false) || skipped === true;
   const ungraded = grade?.result === "ungraded";
   const locked = settled || sending || skipping || groupInput?.locked === true;
 
@@ -308,7 +311,14 @@ const SingleMasteryQuestionCard = memo(function SingleMasteryQuestionCard({
       ) : null}
 
       {/* Footer: only while the question is still the learner's move. */}
-      {!groupInput && (!settled ? (
+      {readOnly && !grade ? (
+        <div className="mt-2.5 text-[11px] text-[var(--muted-foreground)]">
+          {skipped
+            ? t("Skipped — no attempt was recorded for this question.")
+            : t("No answer recorded.")}
+        </div>
+      ) : null}
+      {!groupInput && !readOnly && (!settled ? (
         <div className="mt-3 flex items-center justify-between gap-3">
           <span
             className={
@@ -365,6 +375,7 @@ const SingleMasteryQuestionCard = memo(function SingleMasteryQuestionCard({
 
 function GroupedMasteryQuestionCard({
   question, grade, answered, skipped, onSubmit, onSkip, onChallenge, rejectionKey,
+  readOnly = false,
 }: MasteryQuestionCardProps) {
   const { t } = useTranslation();
   const [answers, setAnswers] = useState<Record<string, { text: string; available: boolean }>>({});
@@ -373,7 +384,7 @@ function GroupedMasteryQuestionCard({
   const questions = question.questions ?? [];
   const acknowledgementKey = grade ? grade.receiptKey ?? JSON.stringify(grade.results ?? []) : undefined;
   const { sending, failed, submit } = useCardSubmission(onSubmit, rejectionKey, acknowledgementKey);
-  const settled = ((answered || Boolean(grade)) && grade?.complete !== false && grade?.final !== false) || skipped === true;
+  const settled = readOnly || ((answered || Boolean(grade)) && grade?.complete !== false && grade?.final !== false) || skipped === true;
   const locked = settled || sending || skipping;
   const remaining = questions.filter((part) => !grade?.results?.some((result) => result.questionId === part.questionId && result.final !== false));
   const drafted = remaining.filter((part) => Boolean(answers[part.questionId]?.text));
@@ -411,9 +422,9 @@ function GroupedMasteryQuestionCard({
       const partGrade = grade?.results?.find((result) => result.questionId === part.questionId) ?? null;
       return <SingleMasteryQuestionCard key={part.questionId} question={part} grade={partGrade}
         answered={settled || (Boolean(partGrade) && partGrade?.final !== false)} skipped={skipped} submittedAnswer={partGrade?.learnerAnswer ?? ""}
-        onSubmit={onSubmit} onChallenge={onChallenge} groupInput={{ locked, onChange: updateAnswer }} />;
+        onSubmit={onSubmit} onChallenge={onChallenge} readOnly={readOnly} groupInput={{ locked, onChange: updateAnswer }} />;
     })}
-    {!settled ? <div className="mt-3 flex items-center justify-between gap-3">
+    {!settled && !readOnly ? <div className="mt-3 flex items-center justify-between gap-3">
       <span className={failed || skipFailed ? "text-xs text-[var(--destructive)]" : "text-xs text-[var(--muted-foreground)]"}>
         {sending ? t("Sending your answers…") : failed || skipFailed
           ? t(failed && rejectionKey ? MASTERY_ANSWER_REJECTED_MESSAGE : REPLY_NOT_DELIVERED)

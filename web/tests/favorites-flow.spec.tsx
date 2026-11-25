@@ -79,7 +79,7 @@ it('opens the exact source and keeps it visible even with a previous filter', as
   render(<NotebookConsole initialNotebookId="inbox" initialRecordId="b" />)
   expect(screen.getByRole('button', { name: 'Beta' })).toHaveAttribute('aria-expanded', 'true')
   expect(screen.getByRole('button', { name: 'Alpha' })).toHaveAttribute('aria-expanded', 'false')
-  fireEvent.change(screen.getByPlaceholderText('Search records in this notebook'), {
+  fireEvent.change(screen.getByPlaceholderText('Search records in this highlights group'), {
     target: { value: 'unmatched' },
   })
   expect(screen.getByRole('button', { name: 'Beta' })).toBeVisible()
@@ -137,7 +137,7 @@ it('redirects an old source link after moving the favorite', async () => {
 it('shows a missing-source notice instead of opening a different favorite', async () => {
   render(<NotebookConsole initialNotebookId="inbox" initialRecordId="deleted" />)
   expect(await screen.findByRole('alert')).toHaveTextContent(
-    'This favorite is no longer available.'
+    'This highlight is no longer available.'
   )
   expect(screen.getByRole('button', { name: 'Alpha' })).toHaveAttribute('aria-expanded', 'false')
 })
@@ -166,7 +166,7 @@ it('inserts a filtered multi-selection as one batch in the order it was picked',
   const insert = vi.fn()
   render(<NoteFavoritesPicker onInsert={insert} onClose={vi.fn()} onSynthesize={vi.fn()} />)
   fireEvent.click(await screen.findByRole('checkbox', { name: 'Beta' }))
-  fireEvent.change(screen.getByLabelText('Search favorites'), { target: { value: 'Alpha' } })
+  fireEvent.change(screen.getByLabelText('Search highlights'), { target: { value: 'Alpha' } })
   expect(screen.queryByRole('checkbox', { name: 'Beta' })).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('checkbox', { name: /Alpha.*Saved source/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Insert {{count}}' }))
@@ -185,7 +185,7 @@ it('browses one collection at a time and shows its empty state', async () => {
   await screen.findByRole('checkbox', { name: /Alpha.*Saved source/ })
   fireEvent.click(screen.getByRole('button', { name: /^Empty/ }))
   await waitFor(() =>
-    expect(screen.getByText('No favorites in this collection yet.')).toBeVisible()
+    expect(screen.getByText('No highlights in this collection yet.')).toBeVisible()
   )
   expect(screen.getByRole('button', { name: 'Insert' })).toBeDisabled()
 })

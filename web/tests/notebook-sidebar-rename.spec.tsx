@@ -51,27 +51,27 @@ vi.mock("@/components/notebook/useNotebookLibrary", () => ({
 it("renames a notebook from its row on the notebook list", async () => {
   render(<NotebookConsole initialNotebookId={null} />);
 
-  const list = screen.getByRole("navigation", { name: "Notebooks" });
+  const list = screen.getByRole("navigation", { name: "Highlights" });
   const secondNotebookRow = within(list)
     .getByText("Second notebook")
     .closest("li");
   expect(secondNotebookRow).not.toBeNull();
 
   const editButton = within(secondNotebookRow!).getByRole("button", {
-    name: "Edit notebook",
+    name: "Edit highlights group",
   });
   fireEvent.click(editButton);
-  const form = screen.getByRole("form", { name: "Edit notebook" });
+  const form = screen.getByRole("form", { name: "Edit highlights group" });
   expect(form).toBeInTheDocument();
 
-  fireEvent.change(screen.getByLabelText("Notebook name"), {
+  fireEvent.change(screen.getByLabelText("Highlights group name"), {
     target: { value: "Renamed notebook" },
   });
   fireEvent.submit(form);
 
   await waitFor(() => {
     expect(
-      screen.queryByRole("form", { name: "Edit notebook" }),
+      screen.queryByRole("form", { name: "Edit highlights group" }),
     ).not.toBeInTheDocument();
   });
   expect(mocks.rename).toHaveBeenCalledWith("notebook-2", {

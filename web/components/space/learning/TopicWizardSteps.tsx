@@ -148,11 +148,11 @@ export function SourcesStep({
   }
   const groups = [
     { key: 'knowledgeBases', label: 'Knowledge bases', icon: Database },
-    { key: 'notebooks', label: 'Notebook', icon: Notebook },
-    { key: 'books', label: 'Books', icon: BookOpen },
+    { key: 'notebooks', label: t('Highlights'), icon: Notebook },
+    { key: 'books', label: t('Courseware'), icon: BookOpen },
     { key: 'questionSets', label: 'Question bank', icon: ListChecks },
     { key: 'chats', label: 'Conversations', icon: MessagesSquare },
-    { key: 'drafts', label: 'Co-Writer drafts', icon: PenLine },
+    { key: 'drafts', label: t('Manuscript drafts'), icon: PenLine },
     { key: 'partners', label: 'Partners', icon: Users },
   ] as const
   const [tab, setTab] = useState<string>('knowledgeBases')

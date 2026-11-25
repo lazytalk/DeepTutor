@@ -204,7 +204,7 @@ function BookPageInner() {
       setCanCreateBook(data.can_create)
       setBooksError(null)
     } catch {
-      setBooksError(t('Failed to load books'))
+      setBooksError(t('Failed to load courseware'))
     } finally {
       setLoadingBooks(false)
     }
@@ -479,12 +479,12 @@ function BookPageInner() {
       if (lastDeepLinkedBookId.current !== requestedBookId) return
       notify(
         t('{{action}} failed: {{reason}}', {
-          action: t('Open book'),
+          action: t('Open courseware'),
           reason: bookErrorMessage(err, t),
         }),
         { tone: 'error', durationMs: 8000 }
       )
-      console.error('Open book failed:', err)
+      console.error('Open courseware failed:', err)
       void handleSelectBook(null)
     })
   }, [requestedBookId, requestedPageId, selectedBookId, handleSelectBook, t])
@@ -1030,8 +1030,8 @@ function BookPageInner() {
       {/* 「书 / this book」: the book switches to the others from the bar. */}
       {requestedBookId && openBook && (
         <div className="flex min-w-0 shrink-0 items-center">
-          <BookCrumb id={openBook.id} label={openBook.title || t('Untitled book')} />
-          {detail?.spine && canEditBook && <button className="ml-auto mr-4 text-sm" onClick={() => setStructureOpen(true)}>{t('Edit book structure')}</button>}
+          <BookCrumb id={openBook.id} label={openBook.title || t('Untitled courseware')} />
+          {detail?.spine && canEditBook && <button className="ml-auto mr-4 text-sm" onClick={() => setStructureOpen(true)}>{t('Edit courseware structure')}</button>}
         </div>
       )}
       <div className="flex min-h-0 min-w-0 flex-1">
@@ -1100,7 +1100,7 @@ function BookPageInner() {
           {displayView === 'creator' && (
             <div className="h-full overflow-y-auto [scrollbar-gutter:stable]">
               <BookCreator
-                back={<button type="button" onClick={() => void handleSelectBook(null)} className="dt-section-back inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"><ArrowLeft size={14} />{t('All books')}</button>}
+                back={<button type="button" onClick={() => void handleSelectBook(null)} className="dt-section-back inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"><ArrowLeft size={14} />{t('All courseware')}</button>}
                 book={pendingBook}
                 onCreate={handleCreate}
                 loading={creating}
@@ -1158,10 +1158,10 @@ function BookPageInner() {
                 <div className="mx-6 mt-3 rounded-lg border border-sky-300/60 bg-sky-50 px-3 py-2 text-xs text-sky-900 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-100">
                   {canEditBook
                     ? t(
-                        'Shared book: content edits affect everyone who can access it. Reading progress and captures remain private to you.'
+                        'Shared courseware: content edits affect everyone who can access it. Reading progress and captures remain private to you.'
                       )
                     : t(
-                        'Shared book (read only): your reading progress, bookmarks and captures remain private to you.'
+                        'Shared courseware (read only): your reading progress, bookmarks and captures remain private to you.'
                       )}
                 </div>
               )}

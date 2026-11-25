@@ -72,12 +72,12 @@ interface NotebookConsoleProps {
 }
 
 /**
- * The saved-records "Notebook" collection, as every feature reads it:
- * `/notebooks` lists the notebooks, and `/notebooks/<id>` is one of them —
- * 「Notebook / its name」 in the page bar, where the name switches to the
- * others. Notebooks are created and edited from the list; the open one can be
- * edited, exported or deleted from its own header. This is not the Co-Writer
- * writing canvas (/co-writer); "Favorites" remains its discoverable alias.
+ * The saved-records "Highlights" collection, as every feature reads it:
+ * `/notebooks` lists the highlight collections, and `/notebooks/<id>` is one
+ * of them — 「Highlights / its name」 in the page bar, where the name switches
+ * to the others. Collections are created and edited from the list; the open
+ * one can be edited, exported or deleted from its own header. This is not the
+ * Manuscript writing canvas (/co-writer).
  */
 export default function NotebookConsole({
   initialNotebookId,
@@ -124,7 +124,7 @@ export default function NotebookConsole({
       <FeaturePage>
         <ConsoleNotice
           tone="error"
-          title={t("Could not load your notebooks")}
+          title={t("Could not load your highlights")}
           detail={library.error}
           action={
             <button
@@ -247,7 +247,7 @@ function NotebookList({
   return (
     <FeaturePage>
       <PageHeader
-        title={t("Notebooks")}
+        title={t("Highlights")}
         icon={Bookmark}
         action={
           <button
@@ -257,12 +257,12 @@ function NotebookList({
             className={pageActionClass("primary")}
           >
             <Plus size={14} strokeWidth={2} />
-            {t("New notebook")}
+            {t("New highlights group")}
           </button>
         }
       />
-      {/* The page bar replaces the header title, so the "Favorites" alias
-          needs its own visible line rather than the header description. */}
+      {/* The page bar replaces the header title, so the hint needs its own
+          visible line rather than the header description. */}
       <p className="mb-4 text-[12.5px] leading-relaxed text-[var(--muted-foreground)]">
         {t("notebooks.favoritesHint")}
       </p>
@@ -274,8 +274,8 @@ function NotebookList({
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder={t("Search favorites…")}
-              aria-label={t("Filter notebooks")}
+              placeholder={t("Search highlights…")}
+              aria-label={t("Filter highlights")}
             />
           </label>
           <span className="dt-fav-home-count">
@@ -286,7 +286,7 @@ function NotebookList({
           </span>
         </div>
       )}
-      <nav aria-label={t("Notebooks")}>
+      <nav aria-label={t("Highlights")}>
         <ul className="dt-fav-grid">
           {visible.map((notebook) => (
             <CollectionCard
@@ -305,7 +305,7 @@ function NotebookList({
                 onClick={() => setCreating(true)}
               >
                 <Plus size={18} strokeWidth={1.7} />
-                {t("New notebook")}
+                {t("New highlights group")}
               </button>
             </li>
           )}
@@ -313,12 +313,12 @@ function NotebookList({
         {!visible.length && (
           <div data-test="notebooks-empty" className="dt-fav-home-empty">
             {notebooks.length ? (
-              <p>{t("No notebooks match your filter.")}</p>
+              <p>{t("No highlights match your filter.")}</p>
             ) : (
               <>
                 <FolderGlyph tone="var(--folder-default)" files={0} size={64} />
                 <p className="dt-fav-home-empty-title">
-                  {t("No notebooks yet.")}
+                  {t("No highlights yet.")}
                 </p>
                 <p>
                   {t(
@@ -331,7 +331,7 @@ function NotebookList({
                   onClick={() => setCreating(true)}
                 >
                   <Plus size={14} strokeWidth={2} />
-                  {t("New notebook")}
+                  {t("New highlights group")}
                 </button>
               </>
             )}
@@ -340,7 +340,7 @@ function NotebookList({
       </nav>
       {creating && (
         <NotebookMetaDialog
-          label={t("New notebook")}
+          label={t("New highlights group")}
           submitLabel={t("Create")}
           onCancel={() => setCreating(false)}
           onSubmit={async ({ name, description, color }) => {
@@ -356,7 +356,7 @@ function NotebookList({
       )}
       {editing && (
         <NotebookMetaDialog
-          label={t("Edit notebook")}
+          label={t("Edit highlights group")}
           submitLabel={t("Save")}
           initial={editing}
           onCancel={() => setEditingId(null)}
@@ -429,7 +429,7 @@ function CollectionCard({
                   size={12}
                 />
                 <span className="truncate">
-                  {record.title || t("Favorite content")}
+                  {record.title || t("Highlight content")}
                 </span>
               </span>
             ))}
@@ -445,10 +445,10 @@ function CollectionCard({
           </span>
         )}
       </button>
-      <Tooltip label={t("Edit notebook")} side="bottom">
+      <Tooltip label={t("Edit highlights group")} side="bottom">
         <button
           type="button"
-          aria-label={t("Edit notebook")}
+          aria-label={t("Edit highlights group")}
           onClick={onEdit}
           className="dt-fav-card-edit"
         >
@@ -526,13 +526,13 @@ function NotebookDetail({
         if (collectionId && collectionId !== notebookId) {
           router.replace(notebookRoute(collectionId, initialRecordId));
         } else {
-          setRecordError(t("This favorite is no longer available."));
+          setRecordError(t("This highlight is no longer available."));
         }
       })
       .catch(() => {
         if (!cancelled)
           setRecordError(
-            t("Could not locate this favorite. Try reopening the source link."),
+            t("Could not locate this highlight. Try reopening the source link."),
           );
       });
     return () => {
@@ -613,7 +613,7 @@ function NotebookDetail({
       anchor.download = `${name || notebookId}.md`;
       anchor.click();
       URL.revokeObjectURL(url);
-      notify(t("Notebook exported"), { tone: "success" });
+      notify(t("Highlights exported"), { tone: "success" });
     } catch (err) {
       onError(err);
     }
@@ -630,13 +630,13 @@ function NotebookDetail({
     <FeaturePage>
       <PageBarSlot name="instance">
         <InstanceCrumb
-          label={name || t("Notebooks")}
+          label={name || t("Highlights")}
           color={color}
-          menuLabel={t("Notebooks")}
+          menuLabel={t("Highlights")}
           currentId={notebookId}
           load={loadNotebooks}
-          create={{ label: t("New notebook"), href: "/notebooks?create=1" }}
-          all={{ label: t("All notebooks"), href: notebookRoute() }}
+          create={{ label: t("New highlights group"), href: "/notebooks?create=1" }}
+          all={{ label: t("All Highlights"), href: notebookRoute() }}
           onRename={selected ? () => setEditing(true) : undefined}
         />
       </PageBarSlot>
@@ -652,7 +652,7 @@ function NotebookDetail({
       {missing ? (
         <ConsoleNotice
           tone="empty"
-          title={t("This notebook could not be opened")}
+          title={t("This highlights group could not be opened")}
           detail={library.detailError ?? t("It may have been deleted.")}
         />
       ) : (
@@ -677,7 +677,7 @@ function NotebookDetail({
             action={
               <div className="flex items-center gap-0.5">
                 <HeaderAction
-                  label={t("Edit notebook")}
+                  label={t("Edit highlights group")}
                   icon={Pencil}
                   onClick={() => setEditing(true)}
                 />
@@ -687,7 +687,7 @@ function NotebookDetail({
                   onClick={() => void handleExport()}
                 />
                 <HeaderAction
-                  label={t("Delete notebook")}
+                  label={t("Delete highlights group")}
                   icon={Trash2}
                   tone="danger"
                   onClick={() => setConfirmingDelete(true)}
@@ -697,7 +697,7 @@ function NotebookDetail({
           />
           {editing && selected && (
             <NotebookMetaDialog
-              label={t("Edit notebook")}
+              label={t("Edit highlights group")}
               submitLabel={t("Save")}
               initial={selected}
               onCancel={() => setEditing(false)}
@@ -719,8 +719,8 @@ function NotebookDetail({
                 <input
                   value={recordQuery}
                   onChange={(event) => setRecordQuery(event.target.value)}
-                  placeholder={t("Search records in this notebook")}
-                  aria-label={t("Search records in this notebook")}
+                  placeholder={t("Search records in this highlights group")}
+                  aria-label={t("Search records in this highlights group")}
                 />
               </label>
               {kinds.length > 1 && (
@@ -792,13 +792,13 @@ function NotebookDetail({
               title={
                 recordQuery || recordKind
                   ? t("No records match your search")
-                  : t("This notebook is empty")
+                  : t("This highlights group is empty")
               }
               detail={
                 recordQuery || recordKind
                   ? t("Try a different word.")
                   : t(
-                      "Save something to it from a chat, research run, or Co-Writer document.",
+                      "Save something to it from a chat, research run, or manuscript.",
                     )
               }
             />
@@ -808,7 +808,7 @@ function NotebookDetail({
 
       <ConfirmDialog
         open={confirmingDelete && Boolean(selected)}
-        title={t("Delete this notebook?")}
+        title={t("Delete this highlights group?")}
         confirmLabel={t("Delete")}
         tone="danger"
         busy={deleting}
@@ -882,10 +882,10 @@ function NotebookMetaDialog({
         </div>
         <h2 className="dt-fav-dialog-title">{label}</h2>
         <label className="dt-fav-field">
-          <span>{t("Notebook name")}</span>
+          <span>{t("Highlights group name")}</span>
           <input
             autoFocus
-            aria-label={t("Notebook name")}
+            aria-label={t("Highlights group name")}
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder={t("e.g. Thermodynamics, Exam review")}

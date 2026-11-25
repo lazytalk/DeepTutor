@@ -174,7 +174,7 @@ it("reveals only the active shelf's sub-menu", async () => {
   expect(screen.queryByRole("button", { name: "starters.explain.1" })).toBeNull();
 
   await pick("navigation.resources");
-  expect(await screen.findByRole("link", { name: "Notebook" })).toBeInTheDocument();
+  expect(await screen.findByRole("link", { name: "Highlights" })).toBeInTheDocument();
   expect(screen.queryByText("Retained session")).toBeNull();
   expect(screen.queryByRole("button", { name: "navigation.newChat" })).toBeNull();
 });
@@ -206,11 +206,11 @@ it("puts new conversation and bound partner chips in Chat, next to history", asy
   fixture.roster = { loading: false, error: false, partners: [] };
 });
 
-it("keeps Resources to its own entries, with no chat history and no Notebook shelf icon", async () => {
+it("keeps Resources to its own entries, with no chat history and no Highlights shelf icon", async () => {
   renderShell();
   await pick("navigation.resources");
 
-  expect(await screen.findByRole("link", { name: "Notebook" })).toBeInTheDocument();
+  expect(await screen.findByRole("link", { name: "Highlights" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Learning journal" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Question Bank" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Knowledge Center" })).toBeInTheDocument();
@@ -219,13 +219,13 @@ it("keeps Resources to its own entries, with no chat history and no Notebook she
   expect(screen.queryByRole("link", { name: /Chat History/ })).toBeNull();
   expect(screen.queryByRole("link", { name: /navigation.chatRecords/ })).toBeNull();
   expect(document.querySelector('a[href="/space/chat-history"]')).toBeNull();
-  // The saved-records Notebook may be a sub-menu row, but never an
-  // icons-row shelf: /co-writer owns that shelf as Co-Writer.
+  // The saved-records Highlights may be a sub-menu row, but never an
+  // icons-row shelf: /co-writer owns that shelf as Manuscript.
   expect(screen.queryByRole("tab", { name: /Notebook/ })).toBeNull();
   expect(screen.queryByRole("tab", { name: /Favorites/ })).toBeNull();
 });
 
-it("gives Task Board and Co-Writer their own shelves", async () => {
+it("gives Task Board and Manuscript their own shelves", async () => {
   renderShell();
 
   await pick("navigation.taskBoard");
@@ -236,9 +236,9 @@ it("gives Task Board and Co-Writer their own shelves", async () => {
   // They are no longer rows of the Home overview.
   expect(screen.queryByRole("link", { name: "Task Board" })).toBeNull();
 
-  await pick("navigation.notebook");
+  await pick("navigation.manuscript");
   expect(await screen.findByRole("link", { name: "Algebra notes" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: /navigation.allNotebooks/ })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: /navigation.allManuscripts/ })).toHaveAttribute(
     "href",
     "/co-writer",
   );

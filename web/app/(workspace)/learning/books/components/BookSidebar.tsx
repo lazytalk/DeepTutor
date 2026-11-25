@@ -90,10 +90,10 @@ export default function BookSidebar({
   if (collapsed) {
     return (
       <aside className="flex h-full w-14 flex-col items-center gap-3 bg-[rgb(var(--dt-ink,55_53_47)/0.022)] px-2 py-4">
-        <Tooltip label={t("All books")}>
+        <Tooltip label={t("All courseware")}>
           <button
             onClick={onBackToLibrary}
-            aria-label={t("All books")}
+            aria-label={t("All courseware")}
             className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)]/40 hover:text-[var(--foreground)]"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -144,7 +144,7 @@ export default function BookSidebar({
           onClick={onBackToLibrary}
           className="dt-section-back inline-flex items-center gap-1.5 self-start rounded-md px-2 py-1 text-xs font-medium text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)]/40 hover:text-[var(--foreground)]"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> {t("All books")}
+          <ArrowLeft className="h-3.5 w-3.5" /> {t("All courseware")}
         </button>
         <Tooltip label={t("Collapse chapters")}>
           <button
@@ -161,9 +161,9 @@ export default function BookSidebar({
         <div className="px-1">
           <div
             className="line-clamp-2 text-sm font-semibold text-[var(--foreground)]"
-            title={book.title || t("Untitled book")}
+            title={book.title || t("Untitled courseware")}
           >
-            {book.title || t("Untitled book")}
+            {book.title || t("Untitled courseware")}
           </div>
           <div className="mt-0.5 text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
             {t(book.status)} ·{" "}
@@ -215,7 +215,7 @@ export default function BookSidebar({
               ? t("Rebuilding…")
               : confirmRebuild
                 ? t("Click again to rebuild")
-                : t("Rebuild book")}
+                : t("Rebuild courseware")}
           </button>
           {confirmRebuild && !rebuilding && (
             <p className="px-1 text-[10px] leading-snug text-[var(--muted-foreground)]">

@@ -59,7 +59,7 @@ export default function NotebookSelector({
       <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-4 py-3.5">
         <h2 className="flex items-center gap-2 text-[14px] font-semibold text-[var(--foreground)]">
           <NotebookPen className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
-          {t("Select Source (Cross-Notebook)")}
+          {t("Select source (all Highlights)")}
         </h2>
         {selectedRecords.size > 0 && (
           <button
@@ -79,9 +79,9 @@ export default function NotebookSelector({
         ) : notebooks.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-4 py-10 text-center text-sm text-[var(--muted-foreground)]">
             <NotebookPen className="h-5 w-5 text-[var(--muted-foreground)]/60" />
-            <span>{t("No notebooks with records found")}</span>
+            <span>{t("No highlights with records found")}</span>
             <span className="text-[11px] text-[var(--muted-foreground)]/80">
-              {t("Save a chat result first to populate a notebook.")}
+              {t("Save a chat result first to populate Highlights.")}
             </span>
           </div>
         ) : (

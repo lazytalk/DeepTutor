@@ -271,7 +271,7 @@ describe("book deep-link loading", () => {
       resolveBooks({ books: [], can_create: true });
     });
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
-  expect(fixture.notify).toHaveBeenCalledWith("Open book failed: Book not found", {
+  expect(fixture.notify).toHaveBeenCalledWith("Open courseware failed: Book not found", {
       tone: "error",
       durationMs: 8000,
     });

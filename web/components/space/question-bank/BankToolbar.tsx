@@ -106,7 +106,7 @@ export default function BankToolbar({
         <option value="deep_question">{t("Deep Question")}</option>
         <option value="mastery_path">{t("Mastery Path")}</option>
         <option value="immersive_reading">{t("Immersive Reading")}</option>
-        <option value="book">{t("Book")}</option>
+        <option value="book">{t("Courseware")}</option>
         <option value="partner_chat">{t("Partner Chat")}</option>
         <option value="import">{t("Imported")}</option>
       </select>

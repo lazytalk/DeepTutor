@@ -305,7 +305,7 @@ export function ReadingCompanion({
       {
         key: "save",
         icon: BookmarkPlus,
-        label: t("Save to Notebook"),
+        label: t("Save to Highlights"),
         disabled: !chatSavePayload,
         onSelect: () => setShowSaveModal(true),
       },

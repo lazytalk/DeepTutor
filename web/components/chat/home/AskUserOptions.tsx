@@ -987,6 +987,7 @@ export const AskUserOptions = memo(function AskUserOptions({
   onSubmit,
   collapsible,
   defaultCollapsed,
+  readOnly = false,
 }: {
   data: AskUserCardData;
   /**
@@ -1007,14 +1008,18 @@ export const AskUserOptions = memo(function AskUserOptions({
   collapsible?: boolean;
   /** Only honoured when ``collapsible`` is true. */
   defaultCollapsed?: boolean;
+  /** Historical surfaces (teacher review) render the exchange as history
+   *  even when the turn never recorded an answer. */
+  readOnly?: boolean;
 }) {
-  if (data.resolved) {
+  if (data.resolved || readOnly) {
     return (
       <ResolvedAskUserCard
         payload={data.payload}
         answers={data.answers ?? []}
         collapsible={collapsible ?? false}
         defaultCollapsed={defaultCollapsed ?? false}
+        readOnly={readOnly}
       />
     );
   }
@@ -1576,11 +1581,15 @@ const ResolvedAskUserCard = memo(function ResolvedAskUserCard({
   answers,
   collapsible,
   defaultCollapsed,
+  readOnly = false,
 }: {
   payload: AskUserPayload;
   answers: AskUserAnswer[];
   collapsible: boolean;
   defaultCollapsed: boolean;
+  /** A historical surface shows "No answer recorded." rather than the
+   *  learner-facing "(skipped)" for a question that was never settled. */
+  readOnly?: boolean;
 }) {
   const { t } = useTranslation();
   // Null means "follow defaultCollapsed"; once the user toggles, their
@@ -1655,7 +1664,7 @@ const ResolvedAskUserCard = memo(function ResolvedAskUserCard({
                     <InlineMarkdown content={value} />
                   ) : (
                     <span className="font-normal italic text-[var(--muted-foreground)]/70">
-                      {t("(skipped)")}
+                      {t(readOnly ? "No answer recorded." : "(skipped)")}
                     </span>
                   )}
                 </div>

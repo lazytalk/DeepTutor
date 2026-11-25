@@ -15,7 +15,7 @@ export interface BlockBodyEditorProps {
  *
  * Intentionally plain. Fixing a wrong sentence should feel like correcting a
  * document, not like operating a CMS — and anything more ambitious than a
- * touch-up belongs in Co-Writer, not in the reader.
+ * touch-up belongs in Manuscript, not in the reader.
  */
 export default function BlockBodyEditor({
   initialValue,

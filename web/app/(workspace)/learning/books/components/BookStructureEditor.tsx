@@ -54,9 +54,9 @@ export default function BookStructureEditor({ detail, onChanged, onClose }: {
     finally { setBusy(false); }
   }
   const inputClass = "w-full rounded border border-[var(--border)] bg-[var(--background)] p-2";
-  return <div ref={dialog} role="dialog" aria-modal="true" aria-label={t("Edit book structure")} className="absolute inset-0 z-40 overflow-auto bg-[var(--background)] p-6">
+  return <div ref={dialog} role="dialog" aria-modal="true" aria-label={t("Edit courseware structure")} className="absolute inset-0 z-40 overflow-auto bg-[var(--background)] p-6">
     <div className="mx-auto max-w-2xl space-y-4">
-      <div className="flex justify-between"><h2 className="text-lg font-semibold">{t("Edit book structure")}</h2><button onClick={onClose}>{t("Close")}</button></div>
+      <div className="flex justify-between"><h2 className="text-lg font-semibold">{t("Edit courseware structure")}</h2><button onClick={onClose}>{t("Close")}</button></div>
       <p className="text-sm text-[var(--muted-foreground)]">{t("New sections generate when opened. Existing content stays intact. Review changes before applying.")}</p>
       <fieldset disabled={busy || !!proposal} className="space-y-3 disabled:opacity-60">
         <label className="block">{t("Action")}<select className={inputClass} value={action} onChange={e => setAction(e.target.value as BookEditInput["action"])}>{actions.map(([value, label]) => <option key={value} value={value}>{t(label)}</option>)}</select></label>

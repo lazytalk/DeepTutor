@@ -48,7 +48,7 @@ it('preserves chosen sources while searching', () => {
   window.history.replaceState({}, '', '/learning/books?dt_workspace=destination')
   render(<Picker />)
   expect(screen.queryByLabelText('Filter by workspace')).toBeNull()
-  fireEvent.click(screen.getByRole('tab', { name: /Books/ }))
+  fireEvent.click(screen.getByRole('tab', { name: /Courseware/ }))
   fireEvent.click(screen.getByRole('button', { name: /Original book/ }))
   fireEvent.click(screen.getByRole('button', { name: /Research book/ }))
   expect(screen.getByText('2 selected')).toBeInTheDocument()

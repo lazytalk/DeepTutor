@@ -119,8 +119,8 @@ export default function BookLibrary({
 
   return (
     <LearningShell
-      title={t('Books')}
-      subtitle={t('Generate, browse and study your AI-authored books.')}
+      title={t('Courseware')}
+      subtitle={t('Generate, browse and study your AI-authored courseware.')}
       action={
         canCreate && (
           <button
@@ -129,7 +129,7 @@ export default function BookLibrary({
             className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[var(--primary)] px-3 text-xs font-semibold text-[var(--primary-foreground)]"
           >
             <Plus size={14} />
-            {t('New book')}
+            {t('New courseware')}
           </button>
         )
       }
@@ -137,7 +137,7 @@ export default function BookLibrary({
       <div
         className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-3"
         role="search"
-        aria-label={t('Search books')}
+        aria-label={t('Search courseware')}
       >
         <div className="relative min-w-48 flex-1 sm:max-w-sm">
           <Search
@@ -145,10 +145,10 @@ export default function BookLibrary({
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]"
           />
           <input
-            aria-label={t('Search books')}
+            aria-label={t('Search courseware')}
             value={query}
             onChange={event => setQuery(event.target.value)}
-            placeholder={t('Search books')}
+            placeholder={t('Search courseware')}
             className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--background)] pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
           />
         </div>
@@ -156,7 +156,7 @@ export default function BookLibrary({
       <div>
         {/* Stats row */}
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard icon={<BookOpen size={14} />} label={t('Total books')} value={stats.total} />
+          <StatCard icon={<BookOpen size={14} />} label={t('Total courseware')} value={stats.total} />
           <StatCard
             icon={<Sparkles size={14} />}
             label={t('Ready')}
@@ -179,7 +179,7 @@ export default function BookLibrary({
               {t('My library')}
             </div>
             <div className="text-xs text-[var(--muted-foreground)]/80">
-              {t('{{shown}} of {{total}} books', {
+              {t('{{shown}} of {{total}} courseware', {
                 shown: filtered.length,
                 total: books.length,
               })}
@@ -197,7 +197,7 @@ export default function BookLibrary({
           )
         ) : filtered.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--secondary)]/30 px-6 py-12 text-center text-sm text-[var(--muted-foreground)]">
-            {t('No books match “{{query}}”.', { query })}
+            {t('No courseware matches “{{query}}”.', { query })}
           </div>
         ) : (
           <div className={pageGridClass(3)}>
@@ -248,7 +248,7 @@ export default function BookLibrary({
 
                   {book.can_delete !== false && (
                     <div className="absolute right-2 top-2 z-10">
-                      <Tooltip label={isPendingDelete ? t('Click again to confirm') : t('Delete book')}>
+                      <Tooltip label={isPendingDelete ? t('Click again to confirm') : t('Delete courseware')}>
                         <button
                           type="button"
                           onClick={event => {
@@ -260,7 +260,7 @@ export default function BookLibrary({
                               setPendingDeleteId(libraryItemKey(book, book.id))
                             }
                           }}
-                          aria-label={isPendingDelete ? t('Click again to confirm') : t('Delete book')}
+                          aria-label={isPendingDelete ? t('Click again to confirm') : t('Delete courseware')}
                           // Permanently visible on touch, where there is no hover
                           // to reveal it — a control that only appears on hover
                           // does not exist on a phone.
@@ -280,10 +280,10 @@ export default function BookLibrary({
                   <div className="flex flex-1 flex-col gap-2 p-4">
                     <div className="flex items-center gap-3 pr-3">
                       <LearningCardContent
-                        title={book.title || t('Untitled book')}
+                        title={book.title || t('Untitled courseware')}
                         subtitle={
                           book.description ||
-                          t('No description yet. Open the book to view its outline.')
+                          t('No description yet. Open the courseware to view its outline.')
                         }
                         icon={<BookOpen size={19} />}
                         progress={(book.reading?.percent ?? 0) / 100}
@@ -397,9 +397,9 @@ function EmptyState({ onNewBook }: { onNewBook?: () => void }) {
   return (
     <LearningEmptyState
       icon={<BookOpen size={28} />}
-      title={t('No books yet')}
+      title={t('No courseware yet')}
       description={t(
-        'Create your first AI-generated book from a knowledge base, chat selections or simply a topic.'
+        'Create your first AI-generated courseware from a knowledge base, chat selections or simply a topic.'
       )}
       action={
         onNewBook && (
@@ -409,7 +409,7 @@ function EmptyState({ onNewBook }: { onNewBook?: () => void }) {
             className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[var(--primary)] px-3 text-sm text-[var(--primary-foreground)]"
           >
             <Plus size={14} />
-            {t('New book')}
+            {t('New courseware')}
           </button>
         )
       }

@@ -1606,7 +1606,7 @@ export default function NoteEditor({
                         ),
                     },
                     {
-                      title: t('Insert favorite'),
+                      title: t('Insert highlight'),
                       preview: 'favorite' as const,
                       onItemClick: () =>
                         container.current?.dispatchEvent(

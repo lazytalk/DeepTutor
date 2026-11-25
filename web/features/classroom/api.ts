@@ -1,4 +1,5 @@
 import { apiFetch } from "@/shared/api/client";
+import type { StreamEvent } from "@/features/chat/model/protocol";
 
 export interface ClassSummary {
   id: string;
@@ -237,8 +238,173 @@ export const renameStudentTopic = (sid: string, pid: string, name: string) =>
 export const studentTopicSessions = (sid: string, pid: string) =>
   apiFetch(`/api/classroom/students/${sid}/topics/${pid}/sessions`).then((r) => json<{ session_ids: string[] }>(r)).then((d) => d.session_ids);
 
-export const studentSession = (sid: string, session_id: string) =>
-  apiFetch(`/api/classroom/students/${sid}/sessions/${session_id}`).then((r) => json<{ messages?: { role?: string; content?: string }[] } & Record<string, unknown>>(r));
+export interface ReviewAskUserOption {
+  label: string;
+  description: string | null;
+}
+
+export interface ReviewAskUserQuestion {
+  id: string;
+  prompt: string;
+  header: string | null;
+  multi_select: boolean;
+  allow_free_text: boolean;
+  placeholder: string | null;
+  options: ReviewAskUserOption[];
+}
+
+export interface ReviewAskUserAnswer {
+  questionId: string;
+  text: string;
+}
+
+/** One ask_user call: what the assistant asked and what the learner replied. */
+export interface ReviewAskUserExchange {
+  tool_call_id: string;
+  intro: string | null;
+  questions: ReviewAskUserQuestion[];
+  answers: ReviewAskUserAnswer[];
+  resolved: boolean;
+  asked_at: number | null;
+  answered_at: number | null;
+}
+
+export interface ReviewToolCall {
+  call_id: string;
+  name: string;
+  status: string;
+  args_preview: string;
+  result_preview: string;
+  started_at: number | null;
+  finished_at: number | null;
+}
+
+export interface ReviewStage {
+  stage: string;
+  label: string;
+  status: string;
+  started_at: number | null;
+  ended_at: number | null;
+  duration: number | null;
+}
+
+export interface ReviewQuizResult {
+  id: number;
+  question_id: string;
+  question: string;
+  question_type: string;
+  options: Record<string, string>;
+  user_answer: string;
+  correct_answer: string;
+  explanation: string;
+  is_correct: boolean;
+  result: string;
+  assessment_type: string;
+  knowledge_point_id: string;
+  mastery_path_id: string;
+  attempt_count: number;
+  hints_used: number;
+  created_at: number;
+}
+
+export interface ReviewError {
+  message: string;
+  code: string;
+  at: number | null;
+}
+
+export interface ReviewTurn {
+  id: string;
+  turn_id: string;
+  number: number;
+  capability: string;
+  status: string;
+  error: string;
+  failure_code: string;
+  retryable: boolean;
+  created_at: number | null;
+  updated_at: number | null;
+  finished_at: number | null;
+  duration: number | null;
+  user_message_id: number | null;
+  assistant_message_id: number | null;
+  message_ids: number[];
+  events: Array<{
+    type: string;
+    source: string;
+    stage: string;
+    content: string;
+    seq: number;
+    timestamp: number;
+    metadata: Record<string, unknown>;
+  }>;
+  ask_user: ReviewAskUserExchange[];
+  tool_calls: ReviewToolCall[];
+  stages: ReviewStage[];
+  quiz_results: ReviewQuizResult[];
+  errors: ReviewError[];
+  counts: {
+    ask_user: number;
+    tools: number;
+    stages: number;
+    quizzes: number;
+    mistakes: number;
+    errors: number;
+    messages?: number;
+  };
+}
+
+export interface ReviewMessage {
+  id: number;
+  session_id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  capability?: string;
+  events: StreamEvent[];
+  attachments?: Array<Record<string, unknown>>;
+  metadata?: Record<string, unknown>;
+  created_at: number;
+  parent_message_id?: number | null;
+  trace?: Record<string, unknown>;
+}
+
+export interface SessionReviewContext {
+  student: { id: string; username: string };
+  class: { id: string; name: string };
+  assignment: { id: string; kind: string; target_id: string };
+  topic: { id: string; name: string };
+  session: { id: string; title: string };
+}
+
+export interface SessionReviewSummary {
+  turns: number;
+  messages: number;
+  ask_user: number;
+  tools: number;
+  quizzes: number;
+  mistakes: number;
+  errors: number;
+}
+
+/** Full read-only review payload for a session bound to an assigned topic. */
+export interface SessionReviewPayload {
+  id: string;
+  session_id: string;
+  title: string;
+  created_at: number;
+  updated_at: number;
+  preferences?: Record<string, unknown>;
+  messages: ReviewMessage[];
+  turns: ReviewTurn[];
+  context: SessionReviewContext;
+  summary: SessionReviewSummary;
+  active_turns?: Record<string, unknown>[];
+}
+
+export const studentSessionReview = (sid: string, sessionId: string) =>
+  apiFetch(`/api/classroom/students/${sid}/sessions/${sessionId}`).then((r) =>
+    json<SessionReviewPayload>(r),
+  );
 
 export const studentQuestionSets = (sid: string) =>
   apiFetch(`/api/classroom/students/${sid}/question-sets`).then((r) => json<{ question_sets: { assignment_id: string; category: { id: number; name: string } }[] }>(r)).then((d) => d.question_sets);

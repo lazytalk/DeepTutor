@@ -72,7 +72,7 @@ export default function NoteFavoritesPicker({
         if (!cancelled) setItems(details.flat())
       })
       .catch(() => {
-        if (!cancelled) setError(t('Could not load favorites.'))
+        if (!cancelled) setError(t('Could not load highlights.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -145,9 +145,9 @@ export default function NoteFavoritesPicker({
   const empty = loading
     ? ''
     : !items.length
-      ? t('Nothing saved yet. Save a conversation or result to Favorites to use it here.')
+      ? t('Nothing saved yet. Save a conversation or result to Highlights to use it here.')
       : !scoped.length
-        ? t('No favorites in this collection yet.')
+        ? t('No highlights in this collection yet.')
         : t('No records match your search')
 
   return (
@@ -166,7 +166,7 @@ export default function NoteFavoritesPicker({
         }}
       >
         <header className="dt-fav-picker-head">
-          <h2 id="dt-fav-picker-title">{t('Insert favorite')}</h2>
+          <h2 id="dt-fav-picker-title">{t('Insert highlight')}</h2>
           <label className="dt-fav-search">
             <Search size={15} strokeWidth={1.8} aria-hidden />
             <input
@@ -176,9 +176,9 @@ export default function NoteFavoritesPicker({
               placeholder={
                 active
                   ? t('Search in “{{name}}”', { name: active.name })
-                  : t('Search all favorites')
+                  : t('Search all highlights')
               }
-              aria-label={t('Search favorites')}
+              aria-label={t('Search highlights')}
             />
             {query && (
               <button
@@ -203,7 +203,7 @@ export default function NoteFavoritesPicker({
           </button>
         </header>
         <div className="dt-fav-picker-body">
-          <nav className="dt-fav-collections" aria-label={t('Favorites')}>
+          <nav className="dt-fav-collections" aria-label={t('Highlights')}>
             <button
               type="button"
               aria-pressed={collection === ALL}
@@ -213,7 +213,7 @@ export default function NoteFavoritesPicker({
               }}
             >
               <Library size={15} strokeWidth={1.7} className="dt-fav-collection-icon" />
-              <span className="truncate">{t('All favorites')}</span>
+              <span className="truncate">{t('All highlights')}</span>
               <span className="dt-fav-count">{items.length || ''}</span>
             </button>
             {!!collections.length && <p className="dt-fav-rail-label">{t('Folders')}</p>}
@@ -296,7 +296,7 @@ export default function NoteFavoritesPicker({
                         <FavoriteKindIcon kind={itemKind} />
                         <span className="min-w-0 flex-1">
                           <span className="dt-fav-title">
-                            {item.title || t('Favorite content')}
+                            {item.title || t('Highlight content')}
                           </span>
                           {item.summary && <span className="dt-fav-summary">{item.summary}</span>}
                           <span className="dt-fav-meta">
@@ -350,7 +350,7 @@ export default function NoteFavoritesPicker({
               </>
             ) : (
               <span className="dt-fav-hint">
-                {t('Pick one or more favorites to place on this page.')}
+                {t('Pick one or more highlights to place on this page.')}
               </span>
             )}
           </span>

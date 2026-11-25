@@ -144,7 +144,7 @@ export function LearningDashboard() {
           {!recent.length && failed.length === 0 && (
             <LearningEmptyState
               title={t(all.length ? 'navigation.noResults' : 'Your next learning journey starts here')}
-              description={t('Choose a book, a topic, a collection or a video to begin.')}
+              description={t('Choose courseware, a topic, a collection or a video to begin.')}
             />
           )}
         </>

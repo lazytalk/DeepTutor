@@ -534,7 +534,7 @@ export default function CapabilitiesSettingsPage() {
       </SettingSection>
 
       <SettingSection
-        title={t("Co-writer")}
+        title={t("Manuscript")}
         description={t("Selection edit / inline rewrite agent.")}
       >
         <NumberRow

@@ -144,7 +144,7 @@ it('shows only selected learning methods that modules and account policy allow',
   harness.allowed = ['chat', 'reading']
   render(<NewLearningPage />)
   expect(screen.queryByRole('button', { name: /Mastery Path/ })).not.toBeInTheDocument()
-  expect(screen.queryByRole('button', { name: /^Books/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /^Courseware/ })).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: /^Practice/ }))
   expect(harness.navigate).toHaveBeenCalledWith('/learning/practice?create=1', expect.any(Function))
 })

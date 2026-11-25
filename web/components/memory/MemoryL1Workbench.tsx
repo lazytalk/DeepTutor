@@ -38,12 +38,12 @@ interface NavEntry {
 
 const L1_NAV: NavEntry[] = [
   { key: "chat", icon: MessageSquare, label: "Chat" },
-  { key: "notebook", icon: NotebookPen, label: "Notebook" },
+  { key: "notebook", icon: NotebookPen, label: "Highlights" },
   { key: "quiz", icon: ClipboardList, label: "Quiz" },
   { key: "kb", icon: BookOpen, label: "Knowledge base" },
-  { key: "book", icon: Library, label: "Book" },
+  { key: "book", icon: Library, label: "Courseware" },
   { key: "partner", icon: Bot, label: "Partner" },
-  { key: "cowriter", icon: PenLine, label: "Co-writer" },
+  { key: "cowriter", icon: PenLine, label: "Manuscript" },
 ];
 
 interface SnapshotResponse {

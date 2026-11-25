@@ -36,12 +36,12 @@ type Operation = {
 const endpoint = '/api/settings/workspace/data'
 const labels: Record<string, [string, string]> = {
   chat: ['Conversations', '对话'],
-  book: ['Books', '书籍'],
+  book: ['Courseware', '课件'],
   learning: ['Mastery Path', '掌握路径'],
   reading: ['Immersive Reading', '沉浸式阅读'],
   timed_media: ['Immersive Watching', '沉浸式观看'],
-  notebook: ['Notebook', '笔记本'],
-  'co-writer': ['Co-Writer', '协作写作'],
+  notebook: ['Highlights', '精华'],
+  'co-writer': ['Manuscript', '手稿'],
   learning_journal: ['Learning journal', '学习日志'],
   files: ['File library', '文件库'],
   knowledge_bases: ['Knowledge bases', '知识库'],

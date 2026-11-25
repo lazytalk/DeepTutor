@@ -9,7 +9,7 @@ const surfaces = [
   ["Mastery", "/learning/mastery"],
   ["Settings", "/settings"],
   ["Knowledge", "/knowledge-bases"],
-  ["Co-Writer", "/co-writer"],
+  ["Manuscript", "/co-writer"],
 ] as const;
 
 const themes = ["snow", "light", "dark", "glass"] as const;

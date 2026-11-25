@@ -79,9 +79,9 @@ export const PRIMARY_NAV: NavEntry[] = [
   },
   {
     href: '/co-writer',
-    label: 'Co-Writer',
+    label: 'Manuscript',
     icon: PenLine,
-    tooltipKey: 'Co-Writer tooltip',
+    tooltipKey: 'Manuscript tooltip',
     requires: 'llm',
     defaultCollapsed: true,
   },

@@ -32,7 +32,7 @@ export const FAVORITE_LABELS: Record<string, string> = {
   question: 'Question',
   reading: 'Reading',
   video_learning: 'Video Learning',
-  co_writer: 'Learning notebook',
+  co_writer: 'Manuscript',
   guided_learning: 'Guided Learning',
 }
 export function favoriteKind(type: string, metadata: Record<string, unknown> = {}): string {

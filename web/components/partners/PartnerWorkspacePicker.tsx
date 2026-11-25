@@ -98,7 +98,7 @@ export default function PartnerWorkspacePicker({
       <p className="text-[12px] leading-relaxed text-[var(--muted-foreground)]">
         {value
           ? t(
-              "This partner shares the workspace's files, knowledge bases, skills, and notebooks. Changes stay in sync; generated files go to its outputs folder.",
+              "This partner shares the workspace's files, knowledge bases, skills, and highlights. Changes stay in sync; generated files go to its outputs folder.",
             )
           : t(
               "Use a private workspace, or bind an existing workspace to share its latest resources.",

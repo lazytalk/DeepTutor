@@ -200,7 +200,7 @@ it("switches metrics and charts without losing the selected view and exposes exa
   );
   query += "&stats_metric=mistakes";
   rerender(<PracticeInsights revision={0} />);
-  expect(screen.queryByText("Book")).not.toBeInTheDocument();
+  expect(screen.queryByText("Courseware")).not.toBeInTheDocument();
   expect(screen.getByText("100%")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Bar chart" }));
   expect(replace.mock.calls.at(-1)?.[0]).toContain("stats_chart=bars");

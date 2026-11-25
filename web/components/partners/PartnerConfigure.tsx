@@ -311,7 +311,7 @@ export default function PartnerConfigure({
         type: "notebook" as const,
         id: nb.id,
         label: nb.name || nb.id,
-        kind: t("Notebook"),
+        kind: t("Highlights"),
       })),
     ];
   }, [assets, t]);
@@ -495,7 +495,7 @@ export default function PartnerConfigure({
         <Section
           title={t("Library")}
           description={t(
-            "Knowledge bases, skills, and notebooks copied into this partner's workspace.",
+            "Knowledge bases, skills, and highlights copied into this partner's workspace.",
           )}
           action={
             <button

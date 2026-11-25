@@ -297,7 +297,7 @@ export default function SpineEditor({
         </h2>
         <p className="mt-1 text-sm text-[var(--muted-foreground)]">
           {t(
-            "Reorder, rename, or remove chapters before the book starts compiling.",
+            "Reorder, rename, or remove chapters before the courseware starts compiling.",
           )}
         </p>
       </header>

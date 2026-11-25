@@ -155,7 +155,7 @@ export default memo(function ChatSpaceMenu({
       if (key === "books") {
         return {
           key,
-          label: "Books",
+          label: "Courseware",
           description: "Reference generated book chapters in chat.",
           icon: BookOpen,
         };

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -7,7 +8,6 @@ import {
   patchStudentEntry,
   renameStudentTopic,
   studentQuestionSets,
-  studentSession,
   studentSetEntries,
   studentTopic,
   studentTopicSessions,
@@ -42,7 +42,6 @@ export function StudentActivityViewer({
   const [topicId, setTopicId] = useState("");
   const [rename, setRename] = useState("");
   const [sessions, setSessions] = useState<string[]>([]);
-  const [transcript, setTranscript] = useState<{ role?: string; content?: string }[] | null>(null);
   const [sets, setSets] = useState<{ assignment_id: string; category: { id: number; name: string } }[]>([]);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [editId, setEditId] = useState<number | null>(null);
@@ -60,17 +59,17 @@ export function StudentActivityViewer({
   }, [classId, studentId]);
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- initial data load */
     void reload();
     setTopic(null);
     setSessions([]);
-    setTranscript(null);
     setEntries([]);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [reload]);
 
   async function openTopic(pid: string) {
     setError("");
     setTopicId(pid);
-    setTranscript(null);
     try {
       const payload = await studentTopic(studentId, pid);
       setTopic(payload);
@@ -116,27 +115,18 @@ export function StudentActivityViewer({
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             {sessions.map((sid) => (
-              <button
+              <Link
                 key={sid}
+                href={`/classroom/review/${encodeURIComponent(studentId)}/${encodeURIComponent(sid)}`}
                 className="text-xs text-[var(--muted-foreground)] hover:underline"
-                onClick={() =>
-                  void studentSession(studentId, sid)
-                    .then((d) => setTranscript((d.messages as { role?: string; content?: string }[]) ?? []))
-                    .catch((err) => setError(String(err)))
-                }
               >
-                {t("View transcript")} {sid.slice(0, 8)}
-              </button>
+                {t("Open session")} {sid.slice(0, 8)}
+              </Link>
             ))}
             {sessions.length === 0 && (
               <span className="text-xs text-[var(--muted-foreground)]">{t("No sessions yet.")}</span>
             )}
           </div>
-          {transcript && (
-            <pre className="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap rounded bg-[var(--background)] p-2 text-xs">
-              {transcript.map((m, i) => `${m.role ?? "?"}: ${m.content ?? ""}`).join("\n\n") || t("Empty transcript.")}
-            </pre>
-          )}
         </div>
       )}
       <div className="mt-3 flex flex-col gap-2">

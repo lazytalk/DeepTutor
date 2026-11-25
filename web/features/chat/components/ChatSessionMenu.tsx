@@ -246,7 +246,7 @@ export default function ChatSessionMenu({
                     <SessionMenuDivider />
                     <SessionMenuItem
                       icon={BookmarkPlus}
-                      label={t("Save to Notebook")}
+                      label={t("Save to Highlights")}
                       disabled={!canSave}
                       onClick={() => {
                         close();

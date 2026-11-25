@@ -104,7 +104,7 @@ export default function NoteSourcePicker({
                 <span className="block text-xs text-[var(--muted-foreground)]">
                   {t(
                     row.kind === 'cowriter'
-                      ? 'Learning notebook'
+                      ? 'Manuscript'
                       : row.kind === 'chat'
                         ? 'Conversation'
                         : 'Knowledge base'

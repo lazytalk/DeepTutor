@@ -191,9 +191,9 @@ function EmbeddedNotice({ pageId, onClose }: NoteCompanionProps) {
         </button>
       </header>
       <div className="dt-note-companion-welcome">
-        <p>{t('Dito works beside the page in the notebook, so this conversation stays yours.')}</p>
+        <p>{t('Dito works beside the page in the manuscript, so this conversation stays yours.')}</p>
         <Link className="dt-note-companion-link" href={`/co-writer/${encodeURIComponent(pageId)}`}>
-          {t('Open in the notebook')} →
+          {t('Open in Manuscript')} →
         </Link>
       </div>
     </aside>

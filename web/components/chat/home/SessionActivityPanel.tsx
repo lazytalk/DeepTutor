@@ -152,13 +152,13 @@ const SPACE_CATEGORIES: Record<string, SpaceCategoryDef> = {
   books: {
     key: "books",
     href: BOOKS_HOME,
-    label: "Books",
+    label: "Courseware",
     icon: BookOpen,
   },
   notebooks: {
     key: "notebooks",
     href: "/notebooks",
-    label: "Notebook",
+    label: "Highlights",
     icon: NotebookPen,
   },
   question_bank: {

@@ -433,7 +433,7 @@ export function buildBookActivity({
     // 2" here printed the same fact twice on one row. Name the work instead.
     label = t("Writing the remaining chapters");
   } else {
-    label = t("Preparing your book");
+    label = t("Preparing your courseware");
   }
 
   const settledPhase = !live;

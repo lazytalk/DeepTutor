@@ -134,7 +134,7 @@ export default function BookReferencePicker({
   const togglePage = (book: Book, page: Page, chapter: Chapter | null) => {
     const nextPage: SelectedBookPage = {
       bookId: book.id,
-      bookTitle: book.title || t("Untitled book"),
+      bookTitle: book.title || t("Untitled courseware"),
       pageId: page.id,
       pageTitle: page.title || t("Untitled chapter"),
       chapterId: chapter?.id || page.chapter_id,
@@ -163,7 +163,7 @@ export default function BookReferencePicker({
         ...prev,
         {
           bookId: book.id,
-          bookTitle: book.title || t("Untitled book"),
+          bookTitle: book.title || t("Untitled courseware"),
           pages: [nextPage],
         },
       ];
@@ -192,7 +192,7 @@ export default function BookReferencePicker({
               )
               .map((page) => ({
                 bookId: book.id,
-                bookTitle: book.title || t("Untitled book"),
+                bookTitle: book.title || t("Untitled courseware"),
                 pageId: page.id,
                 pageTitle: page.title || t("Untitled chapter"),
                 chapterId: chapter?.id || page.chapter_id,
@@ -202,7 +202,7 @@ export default function BookReferencePicker({
           ];
       const nextRef = {
         bookId: book.id,
-        bookTitle: book.title || t("Untitled book"),
+        bookTitle: book.title || t("Untitled courseware"),
         pages: remaining,
       };
       const others = prev.filter((ref) => ref.bookId !== book.id);
@@ -228,9 +228,9 @@ export default function BookReferencePicker({
           resourceKind="books"
           icon={BookOpen}
           titleId="book-picker-title"
-          title={t("Select Book Chapters")}
+          title={t("Select courseware chapters")}
           subtitle={t(
-            "Choose generated book chapters to ground the next answer.",
+            "Choose generated courseware chapters to ground the next answer.",
           )}
           onClose={onClose}
         />
@@ -242,7 +242,7 @@ export default function BookReferencePicker({
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder={t("Search books")}
+                placeholder={t("Search courseware")}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] py-2.5 pl-9 pr-3 text-[13px] outline-none transition focus:border-[var(--primary)]/50 focus:ring-2 focus:ring-[var(--primary)]/15"
               />
             </div>
@@ -271,7 +271,7 @@ export default function BookReferencePicker({
                         <BookOpen className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[13px] font-medium text-[var(--foreground)]">
-                            {book.title || t("Untitled book")}
+                            {book.title || t("Untitled courseware")}
                           </span>
                           <span className="mt-0.5 block text-[11px] text-[var(--muted-foreground)]">
                             {book.page_count || 0} {t("chapters")}
@@ -289,7 +289,7 @@ export default function BookReferencePicker({
                 </div>
               ) : (
                 <div className="px-5 py-12 text-center text-[13px] text-[var(--muted-foreground)]">
-                  {t("No books found.")}
+                  {t("No courseware found.")}
                 </div>
               )}
             </div>
@@ -298,7 +298,7 @@ export default function BookReferencePicker({
           <section className="min-h-0 overflow-y-auto p-5">
             {!activeBook ? (
               <div className="flex h-full items-center justify-center text-sm text-[var(--muted-foreground)]">
-                {t("Select a book to view chapters.")}
+                {t("Select courseware to view chapters.")}
               </div>
             ) : loadingDetail && !activeDetail ? (
               <div className="flex h-full items-center justify-center">
@@ -308,7 +308,7 @@ export default function BookReferencePicker({
               <div className="space-y-4">
                 <div>
                   <h3 className="text-base font-semibold text-[var(--foreground)]">
-                    {activeBook.title || t("Untitled book")}
+                    {activeBook.title || t("Untitled courseware")}
                   </h3>
                   {activeBook.description && (
                     <p className="mt-1 line-clamp-2 text-sm text-[var(--muted-foreground)]">

@@ -80,7 +80,7 @@ export function BookPermissionEditor({ userId }: { userId: string }) {
   if (loading) {
     return (
       <div className="flex items-center gap-2 border-t border-[var(--border)] px-5 py-4 text-xs text-[var(--muted-foreground)]">
-        <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t("Loading book permissions…")}
+        <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t("Loading courseware permissions…")}
       </div>
     );
   }
@@ -90,7 +90,7 @@ export function BookPermissionEditor({ userId }: { userId: string }) {
       <div className="mb-3 flex items-start justify-between gap-4">
         <div>
           <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
-            <BookOpen className="h-4 w-4" /> {t("Book access")}
+            <BookOpen className="h-4 w-4" /> {t("Courseware access")}
           </h3>
           <p className="mt-1 text-xs text-[var(--muted-foreground)]">
             {t("Shared deletion is never delegated. Reading progress and notes stay private per user.")}
@@ -124,10 +124,10 @@ export function BookPermissionEditor({ userId }: { userId: string }) {
               }));
             }}
           />
-          {t("May create personal books")}
+          {t("May create personal courseware")}
         </label>
         <label className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] p-3 text-xs">
-          {t("New shared books default to")}
+          {t("New shared courseware defaults to")}
           <select
             value={permission.default}
             onChange={(event) => {
@@ -148,7 +148,7 @@ export function BookPermissionEditor({ userId }: { userId: string }) {
       <div className="max-h-64 space-y-1 overflow-y-auto">
         {books.length === 0 ? (
           <p className="rounded-lg border border-dashed border-[var(--border)] p-4 text-center text-xs text-[var(--muted-foreground)]">
-            {t("No admin books are available yet.")}
+            {t("No admin courseware is available yet.")}
           </p>
         ) : (
           books.map((book) => (
@@ -190,7 +190,7 @@ export function BookPermissionEditor({ userId }: { userId: string }) {
         </p>
       ) : dirty ? (
         <p className="mt-3 text-xs text-amber-600">
-          {t("Unsaved book permission changes")}
+          {t("Unsaved courseware permission changes")}
         </p>
       ) : null}
     </section>

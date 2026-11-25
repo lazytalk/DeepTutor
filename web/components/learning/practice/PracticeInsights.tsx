@@ -19,7 +19,7 @@ const METRICS: { key: PracticeMetric; label: string; color: string }[] = [
 ];
 const SOURCES: Record<string, string> = {
   mastery_path: "Mastery Path",
-  book: "Book",
+  book: "Courseware",
   deep_question: "Deep Question",
   immersive_reading: "Immersive Reading",
   partner_chat: "Partner Chat",

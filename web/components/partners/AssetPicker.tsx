@@ -201,11 +201,11 @@ export default function AssetPicker({
       />
       <ChipGroup
         icon={NotebookPen}
-        title={t("Notebooks")}
+        title={t("Highlights")}
         options={visible(notebooks, excluded?.notebooks)}
         selected={value.notebooks}
         onToggle={(id) => toggle("notebooks", id)}
-        emptyText={t("No notebooks available.")}
+        emptyText={t("No highlights available.")}
       />
       <p className="text-[12px] text-[var(--muted-foreground)]">
         {t("Selected items are copied into the partner's private workspace.")}

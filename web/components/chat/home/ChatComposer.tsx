@@ -1040,7 +1040,7 @@ export default memo(function ChatComposer({
     ...selectedBookReferences.map((book): ContextTreeItem => ({
       key: `book-${book.bookId}`,
       icon: BookOpen,
-      kind: t("Book"),
+      kind: t("Courseware"),
       label: `${book.bookTitle} (${book.pages.length})`,
       onRemove: () => onRemoveBookReference(book.bookId),
     })),
@@ -1056,7 +1056,7 @@ export default memo(function ChatComposer({
     ...notebookReferenceGroups.map((group): ContextTreeItem => ({
       key: `nb-${group.notebookId}`,
       icon: BookOpen,
-      kind: t("Notebook"),
+      kind: t("Highlights"),
       label: `${group.notebookName} (${group.count})`,
       onRemove: () => onRemoveNotebook(group.notebookId),
     })),

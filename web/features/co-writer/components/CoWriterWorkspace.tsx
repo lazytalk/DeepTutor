@@ -845,10 +845,10 @@ export default function CoWriterWorkspace({ docId, onBack }: CoWriterWorkspacePr
 
   const handleOpenSaveToNotebook = useCallback(() => {
     if (!markdown.trim()) {
-      setError(t("Add some content before saving to a notebook."));
+      setError(t("Add some content before saving to Highlights."));
       return;
     }
-    const fallbackTitle = t("Untitled Co-Writer Document");
+    const fallbackTitle = t("Untitled manuscript");
     const titleForRecord = (docTitle || fallbackTitle).trim() || fallbackTitle;
     setNotebookSavePayload({
       recordType: "co_writer",
@@ -1683,7 +1683,7 @@ export default function CoWriterWorkspace({ docId, onBack }: CoWriterWorkspacePr
           className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--primary)] px-3.5 py-2 text-[12.5px] font-medium text-[var(--primary-foreground)] transition-opacity hover:opacity-90"
         >
           <ChevronLeft size={14} />
-          {t("Back to Co-Writer")}
+          {t("Back to Manuscript")}
         </button>
       </div>
     );
@@ -1713,7 +1713,7 @@ export default function CoWriterWorkspace({ docId, onBack }: CoWriterWorkspacePr
               aria-label={t("Back to documents")}
             >
               <ChevronLeft size={14} strokeWidth={1.7} />
-              <span>{t("Co-Writer")}</span>
+              <span>{t("Manuscript")}</span>
             </button>
           </Tooltip>
           <span className="text-[var(--muted-foreground)]/40">/</span>
@@ -1799,7 +1799,7 @@ export default function CoWriterWorkspace({ docId, onBack }: CoWriterWorkspacePr
             )}
           </ToolbarIconBtn>
           <ToolbarIconBtn
-            title={t("Save to Notebook")}
+            title={t("Save to Highlights")}
             onClick={handleOpenSaveToNotebook}
           >
             <NotebookPen size={17} strokeWidth={1.7} />
@@ -2517,7 +2517,7 @@ export default function CoWriterWorkspace({ docId, onBack }: CoWriterWorkspacePr
         payload={notebookSavePayload}
         onClose={() => setNotebookSavePayload(null)}
         onSaved={() => {
-          setStatus(t("Saved to notebook."));
+          setStatus(t("Saved to Highlights."));
           setError("");
         }}
       />

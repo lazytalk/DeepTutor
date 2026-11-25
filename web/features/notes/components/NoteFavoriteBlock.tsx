@@ -86,7 +86,7 @@ export default function NoteFavoriteBlock({
           type="button"
           className="dt-note-favorite-toggle"
           aria-expanded={expanded}
-          aria-label={`${title || t('Favorite content')} · ${t('Saved original')}`}
+          aria-label={`${title || t('Highlight content')} · ${t('Saved original')}`}
           onClick={toggle}
         >
           <FavoriteKindIcon kind={kind} size={17} />
@@ -100,7 +100,7 @@ export default function NoteFavoriteBlock({
               )}
               {savedAt ? <> · {formatRelativeTime(savedAt, i18n.language)}</> : null}
             </span>
-            <strong className="dt-note-favorite-title">{title || t('Favorite content')}</strong>
+            <strong className="dt-note-favorite-title">{title || t('Highlight content')}</strong>
             {summary && !expanded && <span className="dt-note-favorite-summary">{summary}</span>}
           </span>
         </button>

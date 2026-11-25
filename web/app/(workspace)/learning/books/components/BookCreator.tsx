@@ -168,7 +168,7 @@ export default function BookCreator({
   return (
     <PageContainer>
       {back && <div className="mb-5">{back}</div>}
-      <PageHeader title={t('Create a new book')} description={t('Describe what you want to learn, then pick the knowledge sources to fuse into a structured, interactive book.')} />
+      <PageHeader title={t('Create new courseware')} description={t('Describe what you want to learn, then pick the knowledge sources to fuse into structured, interactive courseware.')} />
       <div className="space-y-5">
 
       <div className="dt-panel">
@@ -431,7 +431,7 @@ function ProposalForm({
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           {effectiveKbs.length === 0 ? (
             <span className="text-xs italic text-[var(--muted-foreground)]">
-              {t('No knowledge bases selected. The book will rely on general knowledge.')}
+              {t('No knowledge bases selected. The courseware will rely on general knowledge.')}
             </span>
           ) : (
             effectiveKbs.map(kb => (

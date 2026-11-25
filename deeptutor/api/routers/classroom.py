@@ -458,9 +458,75 @@ async def view_student_session(
 
             store = get_sqlite_session_store_for(get_current_path_service())
             payload = await store.get_session_with_messages(session_id)
-    if payload is None:
-        raise HTTPException(status_code=404, detail="Unknown session.")
-    return payload
+            if payload is None:
+                raise HTTPException(status_code=404, detail="Unknown session.")
+            turns = await store.list_turns(session_id)
+            events_by_turn = {
+                str(turn.get("id") or ""): await store.get_turn_events(
+                    str(turn.get("id") or "")
+                )
+                for turn in turns
+            }
+            quiz_entries = (
+                await store.list_notebook_entries(session_id=session_id, limit=500)
+            ).get("items", [])
+            topic_name = ""
+            try:
+                progress = LearningStore().load(allowed["target_id"])
+                topic_name = str(getattr(progress, "name", "") or "")
+            except Exception:
+                # A deleted/renamed copy must not make its conversation
+                # unreadable; the review still names the student and class.
+                topic_name = ""
+
+    # Reuse the chat detail endpoint's shaping so the review's ``messages``
+    # are byte-for-byte what the chat renderer already knows how to draw.
+    from deeptutor.api.routers.sessions import (
+        _attach_orphaned_failed_turns,
+        _redact_private_message_metadata,
+        _truncate_oversized_events,
+    )
+
+    _attach_orphaned_failed_turns(
+        payload.get("messages", []), await store.list_orphaned_failed_turns(session_id)
+    )
+    _redact_private_message_metadata(payload.get("messages", []))
+    _truncate_oversized_events(payload.get("messages", []))
+
+    from deeptutor.multi_user.identity import get_user_by_id
+    from deeptutor.services.classroom.review import build_session_review
+
+    student_info = get_user_by_id(student_id)
+    class_record = classroom.class_by_id(allowed["class_id"])
+    return build_session_review(
+        session=payload,
+        turns=turns,
+        events_by_turn=events_by_turn,
+        quiz_entries=quiz_entries,
+        context={
+            "student": {
+                "id": student_id,
+                "username": student_info[0] if student_info else student_id,
+            },
+            "class": {
+                "id": allowed["class_id"],
+                "name": str((class_record or {}).get("name") or ""),
+            },
+            "assignment": {
+                "id": allowed["id"],
+                "kind": allowed["kind"],
+                "target_id": allowed["target_id"],
+            },
+            "topic": {
+                "id": allowed["target_id"],
+                "name": topic_name,
+            },
+            "session": {
+                "id": session_id,
+                "title": str(payload.get("title") or ""),
+            },
+        },
+    )
 
 
 @router.get("/students/{student_id}/question-sets")

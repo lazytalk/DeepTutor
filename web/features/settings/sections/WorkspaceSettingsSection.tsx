@@ -143,7 +143,7 @@ export default function WorkspaceSettingsSection() {
       {(busy || notice) && <p role="status" className="mb-4 text-sm text-[var(--muted-foreground)]">{busy ? t('Working. Migration copies and verifies your files; please wait…') : notice}</p>}
       {!catalog ? (!error && <div aria-busy="true" className="h-44 animate-pulse rounded-xl bg-[var(--muted)]" />) : (
         <fieldset disabled={busy} className="min-w-0 disabled:opacity-70">
-          <SettingSection title={t('Custom workspaces')} description={t('Books, Mastery Path, Reading, Watching and conversations are isolated by workspace.')}>
+          <SettingSection title={t('Custom workspaces')} description={t('Courseware, Mastery Path, Reading, Watching and conversations are isolated by workspace.')}>
             {creating && (
               <form className={`${subPanelClass} my-4 space-y-3 p-4 sm:p-5`} onSubmit={async event => {
                 event.preventDefault()

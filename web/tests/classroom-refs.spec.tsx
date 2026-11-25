@@ -145,7 +145,7 @@ it("groups books by workspace and updates a per-book access override", async () 
 
   await waitFor(() => expect(put).toHaveBeenCalledTimes(1));
   expect(bodyOf(put.mock.calls[0]?.[0] as RequestInit)).toEqual({ books: { b1: "hidden" } });
-  expect(await screen.findByText("Book access updated.")).toBeInTheDocument();
+  expect(await screen.findByText("Courseware access updated.")).toBeInTheDocument();
 });
 
 it("unreferences a non-primary workspace and updates the default book access", async () => {

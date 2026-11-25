@@ -27,16 +27,16 @@ export const LEARNING_SURFACES: readonly LearningSurface[] = [
   {
     kind: 'books',
     href: BOOKS_HOME,
-    title: 'Books',
-    description: 'Generate, browse and study your AI-authored books.',
+    title: 'Courseware',
+    description: 'Generate, browse and study your AI-authored courseware.',
     intro:
-      'Name a subject and DeepTutor writes you a book on it — a spine of chapters first, then each page written out in full.',
+      'Name a subject and DeepTutor writes courseware on it — a spine of chapters first, then each page written out in full.',
     highlights: [
       'Edit the chapter spine before a word is written',
       'Pages carry figures, timelines, quizzes and flash cards',
       'Your place is kept, and the tutor reads along with you',
     ],
-    unit: '{{count}} books',
+    unit: '{{count}} courseware',
     icon: BookOpen,
     accent: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   },
@@ -63,7 +63,7 @@ export const LEARNING_SURFACES: readonly LearningSurface[] = [
     description: 'Your question bank, mistakes and daily reviews.',
     intro: 'Bring questions from every learning activity together, import your own, and build lasting recall through daily practice.',
     highlights: [
-      'Questions from chat, books and mastery paths collect automatically',
+      'Questions from chat, courseware and mastery paths collect automatically',
       'Import your own questions from spreadsheets',
       'Mistakes return when they are due for review',
     ],

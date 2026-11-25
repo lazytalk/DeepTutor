@@ -24,7 +24,7 @@ const SOURCE_LABELS: Record<NotebookEntry["source"], string> = {
   deep_question: "Deep Question",
   mastery_path: "Mastery Path",
   immersive_reading: "Immersive Reading",
-  book: "Book",
+  book: "Courseware",
   partner_chat: "Partner Chat",
   import: "Imported",
 };

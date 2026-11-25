@@ -58,7 +58,7 @@ function Harness({ answerKind }: { answerKind?: "persona" | "agent" } = {}) {
 }
 it("opens a dialog and keeps the category list out of the composer until opened", () => {
   render(<Harness />);
-  expect(screen.queryByText("Books")).not.toBeInTheDocument();
+  expect(screen.queryByText("Courseware")).not.toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: "Done" }),
   ).not.toBeInTheDocument();

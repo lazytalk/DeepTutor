@@ -156,7 +156,7 @@ export default function AttachmentSettingsPage() {
       <SettingsPageHeader
         title={t("Attachments")}
         description={t(
-          "Upload caps and extraction budgets for files attached in chat — shared by the main chat, books, quiz follow-ups, and partners.",
+          "Upload caps and extraction budgets for files attached in chat — shared by the main chat, courseware, quiz follow-ups, and partners.",
         )}
       />
 

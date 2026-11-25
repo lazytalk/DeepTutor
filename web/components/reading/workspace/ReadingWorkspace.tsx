@@ -228,7 +228,7 @@ export function ReadingWorkspacePage() {
       {
         key: "notebook",
         icon: NotebookPen,
-        label: t("Send to Notebook"),
+        label: t("Send to Highlights"),
         onSelect: () => setShowNotebook(true),
       },
       {
@@ -749,7 +749,7 @@ export function ReadingWorkspacePage() {
           onClose={() => setShowNotebook(false)}
           onSaved={() => {
             setShowNotebook(false);
-            setNotice(t("Reading notes sent to Notebook."));
+            setNotice(t("Reading notes sent to Highlights."));
           }}
         />
       )}

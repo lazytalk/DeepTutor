@@ -80,6 +80,9 @@ interface QuizViewerProps {
    */
   turnId?: string | null;
   language?: string;
+  /** Historical surfaces (teacher review) show the quiz without letting the
+   *  viewer answer, retry, judge, or write to the notebook. */
+  readOnly?: boolean;
 }
 
 type AnswerImage = {
@@ -193,6 +196,7 @@ export default function QuizViewer({
   sessionId,
   turnId,
   language = "en",
+  readOnly = false,
 }: QuizViewerProps) {
   const { t } = useTranslation();
   const followupController = useQuizFollowupController();
@@ -245,12 +249,14 @@ export default function QuizViewer({
   );
 
   const updateAnswer = useCallback(
-    (patch: Partial<AnswerState>) =>
+    (patch: Partial<AnswerState>) => {
+      if (readOnly) return;
       setAnswers((prev) => ({
         ...prev,
         [idx]: { ...(prev[idx] ?? EMPTY_ANSWER), ...patch },
-      })),
-    [idx],
+      }));
+    },
+    [idx, readOnly],
   );
 
   // ── Notebook integration ──────────────────────────────────────
@@ -536,7 +542,7 @@ export default function QuizViewer({
   );
 
   const handleSubmit = () => {
-    if (ans.submitted || !q) return;
+    if (readOnly || ans.submitted || !q) return;
     const newAnswer = { ...(answers[idx] ?? EMPTY_ANSWER), submitted: true };
     updateAnswer({ submitted: true });
     void upsertSingleQuestion(q, newAnswer, idx);
@@ -1000,7 +1006,7 @@ export default function QuizViewer({
               return (
                 <button
                   key={key}
-                  disabled={ans.submitted}
+                  disabled={readOnly || ans.submitted}
                   onClick={() => updateAnswer({ selected: key })}
                   className={`flex w-full items-start gap-2.5 rounded-lg border px-3 py-2 text-left text-[13px] transition-all ${optionClass}`}
                 >
@@ -1056,7 +1062,7 @@ export default function QuizViewer({
                 <button
                   key={key}
                   type="button"
-                  disabled={ans.submitted}
+                  disabled={readOnly || ans.submitted}
                   onClick={() => updateAnswer({ selected: key })}
                   className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-3 text-[14px] font-semibold transition-all ${cls}`}
                 >
@@ -1084,7 +1090,7 @@ export default function QuizViewer({
               type="text"
               value={ans.typed}
               onChange={(event) => updateAnswer({ typed: event.target.value })}
-              disabled={ans.submitted}
+              disabled={readOnly || ans.submitted}
               placeholder={t("Type your answer...")}
               className={`w-full rounded-lg border px-3 py-2 text-[13px] outline-none transition-colors placeholder:text-[var(--muted-foreground)] ${
                 ans.submitted
@@ -1101,7 +1107,7 @@ export default function QuizViewer({
             <textarea
               value={ans.typed}
               onChange={(event) => updateAnswer({ typed: event.target.value })}
-              disabled={ans.submitted}
+              disabled={readOnly || ans.submitted}
               rows={
                 q.question_type === "coding"
                   ? 6
@@ -1161,7 +1167,7 @@ export default function QuizViewer({
                       <div className="absolute inset-x-0 bottom-0 truncate bg-black/45 px-1.5 py-0.5 text-[10px] text-white">
                         {image.filename}
                       </div>
-                      {!ans.submitted && (
+                      {!readOnly && !ans.submitted && (
                         <span className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-100">
                           <Tooltip label={t("Remove image")}>
                             <button
@@ -1180,7 +1186,7 @@ export default function QuizViewer({
                 })}
               </div>
             )}
-            {!ans.submitted && (
+            {!readOnly && !ans.submitted && (
               <button
                 type="button"
                 onClick={handlePickImageClick}
@@ -1196,7 +1202,7 @@ export default function QuizViewer({
         )}
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          {!ans.submitted ? (
+          {!readOnly && (!ans.submitted ? (
             <button
               onClick={handleSubmit}
               disabled={(() => {
@@ -1254,7 +1260,7 @@ export default function QuizViewer({
                 );
               })()}
             </>
-          )}
+          ))}
         </div>
 
         {ans.submitted &&

@@ -23,8 +23,6 @@ interface PaletteItem {
   id: string
   label: string
   detail?: string
-  /** Extra search terms that are no longer the visible label. */
-  aliases?: string[]
   icon: ReactNode
   run: () => void
 }
@@ -86,22 +84,18 @@ export function CommandPalette({
       ...categories.map(item => ({
         id: `category:${item.id}`,
         label: t(item.label),
-        // The Co-Writer shelf used to be labelled "Notebook"; keep that
-        // searchable alongside its new name.
-        aliases: item.id === 'notebook' ? ['Notebook'] : undefined,
         icon: glyph(item.icon),
         run: go(item.href),
       })),
       ...[
         { href: '/calendar', label: 'Calendar', icon: CalendarDays },
               { href: '/kanban', label: 'Task Board', icon: Columns3 },
-        { href: '/co-writer', label: 'Co-Writer', aliases: ['Notebook'], icon: PenLine },
+        { href: '/co-writer', label: 'Manuscript', icon: PenLine },
       ]
         .filter(item => navVisibleUnderPolicy(item.href, allowedSurfaces))
         .map(item => ({
           id: item.href,
           label: t(item.label),
-          aliases: 'aliases' in item ? item.aliases : undefined,
           icon: glyph(item.icon),
           run: go(item.href),
         })),
@@ -115,12 +109,6 @@ export function CommandPalette({
             .map(row => ({
               id: `resource:${row.key}`,
               label: zh ? row.title.zh : t(row.title.en),
-              // /notebooks used to be labelled "Favorites"; the alias keeps
-              // that search term working.
-              aliases:
-                row.key === 'notebooks'
-                  ? [t('Favorites'), 'Favorites']
-                  : undefined,
               detail,
               icon: glyph(row.icon),
               run: go(row.href),
@@ -195,10 +183,7 @@ export function CommandPalette({
       q
         ? items
             .filter(item =>
-              includes(
-                `${item.label} ${item.detail ?? ''} ${item.aliases?.join(' ') ?? ''}`,
-                q,
-              ),
+              includes(`${item.label} ${item.detail ?? ''}`, q),
             )
             .slice(0, 6)
         : items.slice(0, idle)

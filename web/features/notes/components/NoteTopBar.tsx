@@ -158,7 +158,7 @@ export default function NoteTopBar({
                 </>
               }
               separator={shown.length > 0 || (!embedded && Boolean(feature))}
-              menuLabel={t('Notebook pages')}
+              menuLabel={t('Manuscript pages')}
               currentId={page.id}
               load={async () =>
                 [...pages]
@@ -286,7 +286,7 @@ export default function NoteTopBar({
                   }}
                 >
                   <Bookmark size={14} />
-                  {t('Insert favorite')}
+                  {t('Insert highlight')}
                 </button>
                 <div className="dt-menu-divider" />
                 <button

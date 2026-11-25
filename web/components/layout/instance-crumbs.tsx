@@ -95,7 +95,7 @@ export function BookCrumb({ id, label, onRename, bare }: CrumbProps) {
         .sort((a, b) => b.updated_at - a.updated_at)
         .map(book => ({
           id: book.id,
-          label: book.title || t('Untitled book'),
+          label: book.title || t('Untitled courseware'),
           href: bookRoute(book.id, null, book.content_workspace_id),
           updatedAt: book.updated_at,
         })),
@@ -105,11 +105,11 @@ export function BookCrumb({ id, label, onRename, bare }: CrumbProps) {
     bare,
     <InstanceCrumb
       label={label}
-      menuLabel={t('Books')}
+      menuLabel={t('Courseware')}
       currentId={id}
       load={load}
       onRename={onRename}
-      all={{ label: t('All books'), href: BOOKS_HOME }}
+      all={{ label: t('All courseware'), href: BOOKS_HOME }}
     />
   )
 }

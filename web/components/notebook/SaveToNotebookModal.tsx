@@ -358,7 +358,7 @@ export default function SaveToNotebookModal({
 
       if (controller.signal.aborted) return;
       if (!response.ok || !response.body) {
-        throw new Error(t("Failed to save to notebook."));
+        throw new Error(t("Failed to save to Highlights."));
       }
 
       const reader = response.body.getReader();
@@ -385,7 +385,7 @@ export default function SaveToNotebookModal({
             setSummaryPreview(finalSummary);
           } else if (type === "error") {
             throw new Error(
-              String(event.payload.detail || t("Failed to save to notebook.")),
+              String(event.payload.detail || t("Failed to save to Highlights.")),
             );
           } else if (type === "result") {
             // The backend skips notebooks it cannot write to and still
@@ -398,7 +398,7 @@ export default function SaveToNotebookModal({
             if (!accepted.length) {
               throw new Error(
                 t(
-                  "No notebook accepted this save. Their files may be missing or damaged.",
+                  "No highlights group accepted this save. Their files may be missing or damaged.",
                 ),
               );
             }
@@ -419,11 +419,11 @@ export default function SaveToNotebookModal({
         }
       }
 
-      throw new Error(t("Notebook save stream ended unexpectedly."));
+      throw new Error(t("Highlights save stream ended unexpectedly."));
     } catch (err) {
       if (controller.signal.aborted) return;
       setError(
-        err instanceof Error ? err.message : t("Failed to save to notebook."),
+        err instanceof Error ? err.message : t("Failed to save to Highlights."),
       );
       setIsLoading(false);
     } finally {
@@ -456,14 +456,14 @@ export default function SaveToNotebookModal({
         <PickerHeader
           icon={NotebookPen}
           titleId="save-to-notebook-title"
-          title={t("Save to Notebook")}
+          title={t("Save to Highlights")}
           subtitle={
             hasMessageSelection
               ? t(
-                  "Choose which messages to include, pick one or more notebooks, and a summary will be generated automatically.",
+                  "Choose which messages to include, pick one or more highlights groups, and a summary will be generated automatically.",
                 )
               : t(
-                  "Select one or more notebooks. A summary will be generated automatically.",
+                  "Select one or more highlights groups. A summary will be generated automatically.",
                 )
           }
           onClose={onClose}
@@ -605,7 +605,7 @@ export default function SaveToNotebookModal({
           <div>
             <div className="mb-2 flex items-center justify-between">
               <label className="block text-sm font-medium text-[var(--foreground)]">
-                {t("Notebooks")}
+                {t("Highlights")}
               </label>
               {selectedIds.length > 0 && (
                 <span className="text-xs text-[var(--muted-foreground)]">
@@ -621,7 +621,7 @@ export default function SaveToNotebookModal({
               ) : notebooks.length === 0 ? (
                 <div className="flex flex-col items-center gap-2.5 px-3 py-6 text-center text-sm text-[var(--muted-foreground)]">
                   <NotebookPen className="h-5 w-5 text-[var(--muted-foreground)]/60" />
-                  <span>{t("No notebooks yet.")}</span>
+                  <span>{t("No highlights yet.")}</span>
                 </div>
               ) : (
                 notebooks.map((notebook) => {
@@ -681,8 +681,8 @@ export default function SaveToNotebookModal({
                   onKeyDown={(event) => {
                     if (event.key === "Enter") void handleCreateNotebook();
                   }}
-                  placeholder={t("New notebook")}
-                  aria-label={t("New notebook")}
+                  placeholder={t("New highlights group")}
+                  aria-label={t("New highlights group")}
                   className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-[12.5px] text-[var(--foreground)] outline-none focus:border-[var(--primary)]/50"
                 />
                 <button

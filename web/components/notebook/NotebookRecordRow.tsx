@@ -85,7 +85,7 @@ const BADGES: Record<
     icon: Search,
   },
   co_writer: {
-    labelKey: "Learning notebook",
+    labelKey: "Manuscript",
     className:
       "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
     icon: Pencil,
@@ -281,11 +281,11 @@ export default function NotebookRecordRow({
         </button>
 
         <div className="dt-fav-record-tools">
-          <Tooltip label={t("Edit favorite details")} side="top">
+          <Tooltip label={t("Edit highlight details")} side="top">
             <button
               type="button"
               disabled={busy}
-              aria-label={t("Edit favorite details")}
+              aria-label={t("Edit highlight details")}
               onClick={() => {
                 if (!expanded) onToggle();
                 startEditing();
@@ -384,7 +384,7 @@ export default function NotebookRecordRow({
         onCancel={() => setPending(null)}
       >
         <p className="text-[13px] leading-relaxed text-[var(--muted-foreground)]">
-          {t('"{{title}}" will be removed from this notebook.', {
+          {t('"{{title}}" will be removed from this highlights group.', {
             title: record.title,
           })}
         </p>

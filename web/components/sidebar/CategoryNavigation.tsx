@@ -48,12 +48,12 @@ const ResourcesNavigation = dynamic(() =>
 
 /**
  * The shelves behind the icon row: Home (the workspace overview), Chat (new
- * conversation + history), Learning, Resources, Task Board and Co-Writer.
+ * conversation + history), Learning, Resources, Task Board and Manuscript.
  * Home is the default. Account-level destinations (Calendar, Classroom,
  * Admin) sit above the workspace selector; Settings and Personalization are
  * reached from the account footer and identity row instead of taking a shelf.
  *
- * Naming: "Co-Writer" is the writing canvas at /co-writer; a "notebook" is
+ * Naming: "Manuscript" is the writing canvas at /co-writer; a "notebook" is
  * the saved-records collection at /notebooks that mastery/book sources read.
  */
 export const CATEGORIES = [
@@ -62,7 +62,7 @@ export const CATEGORIES = [
   { id: 'learning', label: 'navigation.learning', icon: LearningShelfIcon, href: '/learning' },
   { id: 'resources', label: 'navigation.resources', icon: ResourcesShelfIcon, href: '/space' },
   { id: 'task_board', label: 'navigation.taskBoard', icon: Columns3, href: '/kanban' },
-  { id: 'notebook', label: 'navigation.notebook', icon: NotebookPen, href: '/co-writer' },
+  { id: 'notebook', label: 'navigation.manuscript', icon: NotebookPen, href: '/co-writer' },
 ] as const
 
 export function useCategoryNavigation() {
@@ -297,8 +297,8 @@ function TaskBoardNavigation() {
 }
 
 /**
- * Co-Writer's shelf: the page list at /co-writer. It reads the same page
- * list the Co-Writer home does, without the editor's state.
+ * Manuscript's shelf: the page list at /co-writer. It reads the same page
+ * list the Manuscript home does, without the editor's state.
  */
 function NotebookNavigation() {
   const { t } = useTranslation()
@@ -329,7 +329,7 @@ function NotebookNavigation() {
   }
   return (
     <>
-      <OverviewRow href="/co-writer" label={t('navigation.allNotebooks')} icon={NotebookPen} />
+      <OverviewRow href="/co-writer" label={t('navigation.allManuscripts')} icon={NotebookPen} />
       <div className="dt-navigation-section">
         <Status loading={loading} error={failed} retry={retry} />
         {!loading &&
