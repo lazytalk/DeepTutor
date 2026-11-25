@@ -568,68 +568,77 @@ async def my_assignments(_: object = Depends(require_auth)) -> dict:
 async def class_progress(class_id: str, _: object = Depends(require_teacher)) -> dict:
     """P3: per-student progress over assigned copies (read-only aggregation)."""
     _require_mode()
-    import asyncio
-
-    from deeptutor.learning.storage import LearningStore
-    from deeptutor.multi_user.identity import get_user_by_id
-    from deeptutor.services.classroom.assignments import student_context
-    from deeptutor.services.practice.storage import PracticeStore
-    from deeptutor.services.session.sqlite_store import get_sqlite_session_store
+    from deeptutor.services.classroom.progress import compute_progress_rows
 
     record = _require_owner(class_id)
-    rows = []
-    for member in record["members"]:
-        student_id = member["user_id"]
-        info = get_user_by_id(student_id)
-        topics = []
-        with student_context(student_id):
-            for assignment in classroom.list_assignments(
-                teacher_id=record["teacher_id"], student_id=student_id, kind="mastery_topic"
-            ):
-                with workspace_context(assignment["target_workspace_id"] or None):
-                    store = LearningStore()
-                    progress = store.load(assignment["target_id"])
-                    if progress is None:
-                        continue
-                    knowledge_points = [
-                        kp for module in progress.modules for kp in module.knowledge_points
-                    ]
-                    thresholds = {m.id: m.pass_threshold for m in progress.modules}
-                    mastered = 0
-                    for kp in knowledge_points:
-                        ktype = progress.knowledge_types.get(kp.id) or kp.type
-                        ktype_value = getattr(ktype, "value", str(ktype)).lower()
-                        if ktype_value in ("memory", "procedure"):
-                            if progress.mastery_levels.get(kp.id, 0.0) >= thresholds.get(
-                                kp.module_id, 0.7
-                            ):
-                                mastered += 1
-                        elif progress.qualitative_mastery.get(kp.id):
-                            mastered += 1
-                    topics.append(
-                        {
-                            "target_id": assignment["target_id"],
-                            "name": progress.name or assignment["target_id"],
-                            "kp_total": len(knowledge_points),
-                            "kp_mastered": mastered,
-                            "reviews_due": len(progress.review_queue),
-                            "sessions": len(store.list_session_ids(assignment["target_id"])),
-                        }
-                    )
-            with workspace_context(None):
-                session_store = get_sqlite_session_store()
-                practice = await asyncio.to_thread(
-                    PracticeStore(session_store.db_path).analytics, "UTC", 30
-                )
-        rows.append(
+    rows = await compute_progress_rows(
+        teacher_id=record["teacher_id"],
+        student_ids=[member["user_id"] for member in record["members"]],
+    )
+    return {"rows": rows}
+
+
+@router.get("/dashboard")
+async def teacher_dashboard(_: object = Depends(require_teacher)) -> dict:
+    """Cross-class teacher dashboard (read-only).
+
+    Iterates the requesting teacher's non-archived classes and reuses the
+    per-class aggregation helper, so a dashboard row always matches the
+    corresponding class progress panel. An actor without owned classes (for
+    example another teacher) simply receives an empty aggregate.
+    """
+    _require_mode()
+    from deeptutor.services.classroom.progress import compute_progress_rows
+
+    user = get_current_user()
+    records = classroom.list_classes(teacher_id=user.id)
+    class_ids = {record["id"] for record in records}
+    assignments = [
+        assignment
+        for assignment in classroom.list_assignments(teacher_id=user.id)
+        if assignment["class_id"] in class_ids
+    ]
+
+    classes: list[dict] = []
+    student_ids: set[str] = set()
+    reviews_due = 0
+    sessions = 0
+    for record in records:
+        rows = await compute_progress_rows(
+            teacher_id=record["teacher_id"],
+            student_ids=[member["user_id"] for member in record["members"]],
+        )
+        for row in rows:
+            student_ids.add(row["student_id"])
+            for topic in row["topics"]:
+                reviews_due += topic["reviews_due"]
+                sessions += topic["sessions"]
+        classes.append(
             {
-                "student_id": student_id,
-                "username": info[0] if info else student_id,
-                "topics": topics,
-                "practice_totals": practice.get("totals", {}),
+                "class_id": record["id"],
+                "class_name": record["name"],
+                "workspace_id": record["workspace_id"],
+                "member_count": len(record["members"]),
+                "assignments": sum(
+                    1 for assignment in assignments if assignment["class_id"] == record["id"]
+                ),
+                "reviews_due": sum(
+                    topic["reviews_due"] for row in rows for topic in row["topics"]
+                ),
+                "students": rows,
             }
         )
-    return {"rows": rows}
+
+    return {
+        "classes": classes,
+        "totals": {
+            "classes": len(classes),
+            "students": len(student_ids),
+            "assignments": len(assignments),
+            "reviews_due": reviews_due,
+            "sessions": sessions,
+        },
+    }
 
 
 @router.get("/classes/{class_id}/workspaces")

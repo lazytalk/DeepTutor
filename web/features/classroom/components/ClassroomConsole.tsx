@@ -34,6 +34,7 @@ import {
 import { AssignmentBoard } from "./AssignmentBoard";
 import { ProgressDashboard } from "./ProgressDashboard";
 import { StudentActivityViewer } from "./StudentActivityViewer";
+import { TeacherDashboard } from "./TeacherDashboard";
 
 const panel = "rounded-xl border border-[var(--border)] bg-[var(--secondary)] p-4";
 const input =
@@ -45,6 +46,7 @@ export default function ClassroomConsole() {
   const { t } = useTranslation();
   const { role } = useAuthStatus();
   const isTeacher = role === "teacher" || role === "admin";
+  const [tab, setTab] = useState<"dashboard" | "classes">("dashboard");
   const [classes, setClasses] = useState<ClassSummary[]>([]);
   const [selected, setSelected] = useState<ClassSummary | null>(null);
   const [members, setMembers] = useState<ClassMember[]>([]);
@@ -75,6 +77,7 @@ export default function ClassroomConsole() {
   }, [isTeacher]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load
     void reload();
   }, [reload]);
 
@@ -184,14 +187,58 @@ export default function ClassroomConsole() {
 
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-4 px-6 py-8">
-      <header className="flex items-center gap-2">
+      <header className="flex flex-wrap items-center gap-2">
         <School size={20} strokeWidth={1.7} />
         <h1 className="font-serif text-xl font-semibold">{t("Classroom")}</h1>
+        {isTeacher && (
+          <div
+            role="tablist"
+            aria-label={t("Classroom")}
+            className="ml-auto flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--secondary)] p-0.5"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "dashboard"}
+              className={`rounded-md px-3 py-1 text-sm ${
+                tab === "dashboard"
+                  ? "bg-[var(--background)] text-[var(--foreground)]"
+                  : "text-[var(--muted-foreground)]"
+              }`}
+              onClick={() => setTab("dashboard")}
+            >
+              {t("Dashboard")}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "classes"}
+              className={`rounded-md px-3 py-1 text-sm ${
+                tab === "classes"
+                  ? "bg-[var(--background)] text-[var(--foreground)]"
+                  : "text-[var(--muted-foreground)]"
+              }`}
+              onClick={() => setTab("classes")}
+            >
+              {t("Classes")}
+            </button>
+          </div>
+        )}
       </header>
       {error && <p className="text-sm text-[var(--destructive)]">{error}</p>}
       {notice && <p className="text-sm text-[var(--muted-foreground)]">{notice}</p>}
 
-      {isTeacher && (
+      {isTeacher && tab === "dashboard" && (
+        <TeacherDashboard
+          onOpenClass={(classId) => {
+            const item = classes.find((entry) => entry.id === classId);
+            if (item) void openMembers(item);
+            setTab("classes");
+          }}
+        />
+      )}
+
+      {isTeacher && tab === "classes" && (
         <form
           className={`${panel} flex flex-wrap items-center gap-2`}
           onSubmit={(event) => {
@@ -216,6 +263,7 @@ export default function ClassroomConsole() {
         </form>
       )}
 
+      {(!isTeacher || tab === "classes") && (
       <section className={panel}>
         <h2 className="mb-2 flex items-center gap-1.5 text-sm font-medium">
           <Users size={15} /> {isTeacher ? t("Classes") : t("My classes")}
@@ -259,8 +307,9 @@ export default function ClassroomConsole() {
           ))}
         </ul>
       </section>
+      )}
 
-      {isTeacher && selected && (
+      {isTeacher && tab === "classes" && selected && (
         <section className={panel}>
           <h2 className="mb-2 text-sm font-medium">
             {selected.name} · {t("Members")}
@@ -349,7 +398,7 @@ export default function ClassroomConsole() {
         </section>
       )}
 
-      {isTeacher && selected && (
+      {isTeacher && tab === "classes" && selected && (
         <section className={panel}>
           <h2 className="mb-2 flex items-center gap-1.5 text-sm font-medium">
             <FolderOpen size={15} /> {t("Class workspaces")}
@@ -410,7 +459,7 @@ export default function ClassroomConsole() {
         </section>
       )}
 
-      {isTeacher && selected && (
+      {isTeacher && tab === "classes" && selected && (
         <section className={panel}>
           <h2 className="mb-2 flex items-center gap-1.5 text-sm font-medium">
             <BookOpen size={15} /> {t("Book access")}
@@ -464,7 +513,7 @@ export default function ClassroomConsole() {
         </section>
       )}
 
-      {isTeacher && selected && (
+      {isTeacher && tab === "classes" && selected && (
         <>
           <AssignmentBoard
             key={selected.id}

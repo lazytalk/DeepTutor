@@ -6723,5 +6723,12 @@
   "Pick a student": "选择学生",
   "Reviews due": "待复习",
   "Practice totals": "练习统计",
-  "No progress yet.": "暂无进度。"
+  "No progress yet.": "暂无进度。",
+  "Students": "学生",
+  "Active assignments": "进行中的作业",
+  "Teacher dashboard": "教师总览",
+  "No dashboard data yet.": "暂无总览数据。",
+  "Open class": "打开班级",
+  "No students in this class.": "该班级暂无学生。",
+  "Back to overview": "返回总览"
 }

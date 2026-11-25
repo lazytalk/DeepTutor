@@ -139,6 +139,47 @@ export const setBookAccess = (id: string, patch: { default?: BookAccess; books?:
     body: JSON.stringify(patch),
   }).then((r) => json<{ book_policy: { default: BookAccess; books: Record<string, BookAccess> } }>(r));
 
+export interface DashboardTopicProgress {
+  target_id: string;
+  name: string;
+  kp_total: number;
+  kp_mastered: number;
+  reviews_due: number;
+  sessions: number;
+}
+
+export interface DashboardStudentProgress {
+  student_id: string;
+  username: string;
+  topics: DashboardTopicProgress[];
+  practice_totals: Record<string, number>;
+}
+
+export interface DashboardClass {
+  class_id: string;
+  class_name: string;
+  workspace_id: string;
+  member_count: number;
+  assignments: number;
+  reviews_due: number;
+  students: DashboardStudentProgress[];
+}
+
+export interface ClassroomDashboard {
+  classes: DashboardClass[];
+  totals: {
+    classes: number;
+    students: number;
+    assignments: number;
+    reviews_due: number;
+    sessions: number;
+  };
+}
+
+/** Teacher: aggregate progress across every non-archived owned class. */
+export const classroomDashboard = () =>
+  apiFetch("/api/classroom/dashboard").then((r) => json<ClassroomDashboard>(r));
+
 export interface AssignmentSource {
   kind: "mastery_topic" | "question_set";
   id: string;

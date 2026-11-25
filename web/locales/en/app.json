@@ -6723,5 +6723,12 @@
   "Pick a student": "Pick a student",
   "Reviews due": "Reviews due",
   "Practice totals": "Practice totals",
-  "No progress yet.": "No progress yet."
+  "No progress yet.": "No progress yet.",
+  "Students": "Students",
+  "Active assignments": "Active assignments",
+  "Teacher dashboard": "Teacher dashboard",
+  "No dashboard data yet.": "No dashboard data yet.",
+  "Open class": "Open class",
+  "No students in this class.": "No students in this class.",
+  "Back to overview": "Back to overview"
 }
