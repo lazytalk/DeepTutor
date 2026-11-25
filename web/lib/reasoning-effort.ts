@@ -261,7 +261,7 @@ export function reasoningEffortOptionsFromSupportedLevels(
   values: readonly string[],
 ): ReasoningEffortOption[] {
   const supported = [
-    ...new Set(values.map((value) => value.trim()).filter(Boolean)),
+    ...new Set((values ?? []).map((value) => value.trim()).filter(Boolean)),
   ];
   return options(supported, "");
 }
@@ -304,7 +304,7 @@ export function supportedReasoningEffortValues(
 ): string[] {
   if (!option) return [];
   const offered =
-    option.supported_reasoning_efforts !== undefined
+    option.supported_reasoning_efforts != null
       ? reasoningEffortOptionsFromSupportedLevels(
           option.supported_reasoning_efforts,
         )

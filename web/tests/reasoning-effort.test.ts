@@ -336,3 +336,18 @@ test("a restored xhigh override never reaches the wire once the model restricts 
   assert.equal(dropUnvalidatedReasoningEffort(plain, null), plain);
   assert.equal(dropUnvalidatedReasoningEffort(null, option), null);
 });
+
+test("supportedReasoningEffortValues treats null supported levels as unknown", () => {
+  const option = {
+    provider: "openai",
+    model: "gpt-5",
+    supported_reasoning_efforts: null,
+  } as unknown as Parameters<typeof supportedReasoningEffortValues>[0];
+  const values = supportedReasoningEffortValues(option);
+  assert.ok(Array.isArray(values));
+});
+
+test("reasoningEffortOptionsFromSupportedLevels tolerates null", () => {
+  const options = reasoningEffortOptionsFromSupportedLevels(null as unknown as string[]);
+  assert.ok(Array.isArray(options));
+});
