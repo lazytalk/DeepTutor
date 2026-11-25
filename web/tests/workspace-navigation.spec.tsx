@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { expect, it, vi } from 'vitest'
 import { WorkspaceNavigation } from '@/components/workspaces/WorkspaceNavigation'
 import { WorkspaceRuntimeBoundary } from '@/components/workspaces/WorkspaceRuntimeBoundary'
-import { activeWorkspaceId, selectWorkspace } from '@/lib/workspace-scope'
+import { activeWorkspaceId, rememberWorkspaceId, selectWorkspace } from '@/lib/workspace-scope'
 import { invalidateClientCache, withClientCache } from '@/lib/client-cache'
 
 const fixture = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn(), query: new URLSearchParams() }))
@@ -41,14 +41,32 @@ it('keeps links that name no workspace in the current one', () => {
   expect(fixture.push).not.toHaveBeenCalled()
 })
 
-it('writes the tab workspace into a URL that arrived without one', () => {
+it('writes the tab workspace into a URL that arrived without one', async () => {
   window.history.replaceState(null, '', '/chat?dt_workspace=first')
   activeWorkspaceId()
   window.history.replaceState(null, '', '/learning/books')
   fixture.query = new URLSearchParams()
   fixture.replace.mockClear()
   render(<WorkspaceNavigation />)
-  expect(fixture.replace).toHaveBeenCalledWith('/learning/books?dt_workspace=first')
+  await vi.waitFor(() =>
+    expect(fixture.replace).toHaveBeenCalledWith('/learning/books?dt_workspace=first'),
+  )
+})
+
+it('does not re-apply a remembered workspace that no longer exists', async () => {
+  // This is the fresh-tab case: the URL names no scope, so the canonicalizer
+  // would normally copy the remembered id into it.
+  rememberWorkspaceId('removed')
+  window.history.replaceState(null, '', '/classroom')
+  fixture.query = new URLSearchParams()
+  fixture.push.mockClear()
+  fixture.replace.mockClear()
+  render(<WorkspaceNavigation />)
+  await vi.waitFor(() =>
+    expect(fixture.push).toHaveBeenCalledWith('/classroom?dt_workspace='),
+  )
+  expect(fixture.replace).not.toHaveBeenCalled()
+  expect(activeWorkspaceId()).toBe('')
 })
 
 it('falls back to General once when the workspace no longer exists', async () => {

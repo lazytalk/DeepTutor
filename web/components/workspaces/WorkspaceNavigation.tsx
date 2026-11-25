@@ -2,20 +2,25 @@
 
 import { Suspense, useEffect } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { listWorkspaces } from '@/lib/workspaces-api'
 import {
   activeWorkspaceId,
+  forgetWorkspaceId,
   registerWorkspaceNavigator,
   rememberWorkspaceId,
   scopedUrl,
   selectWorkspace,
+  workspaceExists,
   workspaceIdOf,
 } from '@/lib/workspace-scope'
+
+const currentUrl = () =>
+  `${window.location.pathname}${window.location.search}${window.location.hash}`
 
 /**
  * Write the tab's workspace into any URL that arrived without one, so the
  * address can be copied and every query-reading surface sees the same scope.
- * A remembered workspace that no longer exists falls back to General once.
+ * A remembered workspace that no longer exists is forgotten before it can be
+ * applied, and the tab falls back to General once.
  */
 function ScopeCanonicalizer() {
   const router = useRouter()
@@ -23,25 +28,47 @@ function ScopeCanonicalizer() {
   const query = useSearchParams()
   const named = workspaceIdOf(query)
   useEffect(() => {
-    if (named !== null) {
-      rememberWorkspaceId(named)
+    let alive = true
+    const fallBack = () => {
+      void selectWorkspace('', `/${window.location.pathname.split('/')[1] || 'chat'}`)
+    }
+    // An explicit empty scope is the General workspace — authoritative.
+    if (named === '') {
+      rememberWorkspaceId('')
       return
     }
-    router.replace(scopedUrl(`${window.location.pathname}${window.location.search}${window.location.hash}`))
-  }, [named, pathname, router])
-  useEffect(() => {
-    const remembered = activeWorkspaceId()
-    if (!remembered) return
-    let alive = true
-    listWorkspaces()
-      .then(rows => {
-        if (!alive || rows.some(row => row.workspace_id === remembered && row.kind === 'workspace')) return
-        rememberWorkspaceId('')
-        void selectWorkspace('', `/${window.location.pathname.split('/')[1] || 'chat'}`)
+    if (named !== null) {
+      void workspaceExists(named).then(exists => {
+        if (!alive) return
+        if (exists === false) {
+          forgetWorkspaceId(named)
+          fallBack()
+          return
+        }
+        // Only persist a scope the registrations list vouches for; the URL
+        // still names it either way, so nothing is lost if the list is down.
+        rememberWorkspaceId(named)
       })
-      .catch(() => undefined)
+      return () => { alive = false }
+    }
+    const remembered = activeWorkspaceId()
+    if (!remembered) {
+      router.replace(scopedUrl(currentUrl()))
+      return () => { alive = false }
+    }
+    // Validate before the remembered id is written into the address, so a
+    // deleted workspace is never propagated as ?dt_workspace=<stale>.
+    void workspaceExists(remembered).then(exists => {
+      if (!alive) return
+      if (exists === false) {
+        forgetWorkspaceId(remembered)
+        fallBack()
+        return
+      }
+      router.replace(scopedUrl(currentUrl()))
+    })
     return () => { alive = false }
-  }, [])
+  }, [named, pathname, router])
   return null
 }
 

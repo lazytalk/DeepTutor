@@ -230,19 +230,22 @@ export function CategoryBody({
     >
       {nav.category === 'home' && (
         <>
-          {/* The tutor itself leads the shelf; the tools it works with follow. */}
+          {/* The tutor leads the shelf, and the classroom sits beside it:
+              classes span workspaces, so the classroom is account-level. */}
           {navVisibleUnderPolicy('/chat', nav.allowedSurfaces) && (
             <OverviewRow href="/chat" label={t('navigation.chat')} icon={MessageCircle} />
           )}
+          {navVisibleUnderPolicy('/classroom', nav.allowedSurfaces) &&
+            ['admin', 'teacher', 'student'].includes(role ?? '') && (
+              <OverviewRow href="/classroom" label={t('Classroom')} icon={School} />
+            )}
           <Section title={t('navigation.workspace')}>
             {[
               { href: '/calendar', label: 'Calendar', icon: CalendarDays },
               { href: '/kanban', label: 'Task Board', icon: Columns3 },
               { href: '/co-writer', label: 'Co-Writer', icon: PenLine },
-              { href: '/classroom', label: 'Classroom', icon: School },
             ]
               .filter(item => navVisibleUnderPolicy(item.href, nav.allowedSurfaces))
-              .filter(item => item.href !== '/classroom' || ['admin', 'teacher', 'student'].includes(role ?? ''))
               .map(item => (
                 <NavigationRow
                   key={item.href}

@@ -30,6 +30,13 @@ function readModules() {
         const result = await response.json() as { modules: ModuleStatus[] }
         return result.modules
       })
+      // A failed inventory must not be cached for the lifetime of the tab:
+      // the next mount (for example after a stale workspace falls back to
+      // General) gets a fresh attempt instead of the same rejection.
+      .catch(error => {
+        pending = null
+        throw error
+      })
   }
   return pending
 }

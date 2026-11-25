@@ -66,9 +66,11 @@ export function pageSections({
       icon: HomeShelfIcon,
       pages: [
         { href: '/chat', label: t('Chat'), icon: MessageCircle },
+        // Account-level like Chat: a class spans workspaces, so the classroom
+        // leads the shelf instead of sitting among its workspace tools.
+        { href: '/classroom', label: t('Classroom'), icon: School, account: true },
         { href: '/calendar', label: t('Calendar'), icon: CalendarDays, account: true },
         { href: '/kanban', label: t('Task Board'), icon: Columns3 },
-        { href: '/classroom', label: t('Classroom'), icon: School, account: true },
         { href: '/co-writer', label: t('Co-Writer'), icon: PenLine },
       ].filter(page => navVisibleUnderPolicy(page.href, allowedSurfaces)),
     },

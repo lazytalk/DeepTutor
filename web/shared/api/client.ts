@@ -1,6 +1,6 @@
 import { ApiError, type AppError, type AppErrorScope } from "./errors";
 import { browserReturnPath, loginHref } from "../auth/return-url";
-import { scopedUrl } from "@/lib/workspace-scope";
+import { generalScopedUrl, reconcileWorkspaceId, scopedUrl } from "@/lib/workspace-scope";
 
 export interface RequestOptions extends RequestInit {
   scope?: AppErrorScope;
@@ -25,6 +25,55 @@ export function setRuntimeAuthEnabled(enabled: boolean): void {
   runtimeAuthEnabled = enabled;
 }
 
+/** Paths the backend resolves independently of the content scope. */
+function scopeManagedByAccount(pathname: string): boolean {
+  return [
+    "/api/settings",
+    "/api/auth",
+    "/api/multi-user",
+    "/api/task-board",
+    "/api/calendar",
+    "/api/classroom",
+  ].some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+/**
+ * A 404 that names a workspace the account no longer has is a stale browser
+ * memory, not a missing resource. Confirm it with the registrations list,
+ * forget the dead scope, and replay the read once in General instead of
+ * handing the 404 to the page. Request bodies are not replayed.
+ */
+async function retryStaleWorkspaceInGeneral(
+  scopedInput: string | URL | Request,
+  init: RequestInit | undefined,
+  method: string,
+): Promise<Response | null> {
+  if (typeof window === "undefined") return null;
+  if (method !== "GET" && method !== "HEAD") return null;
+  const href =
+    typeof scopedInput === "string"
+      ? scopedInput
+      : scopedInput instanceof URL
+        ? scopedInput.toString()
+        : null;
+  if (!href) return null;
+  let url: URL;
+  try {
+    url = new URL(href, window.location.origin);
+  } catch {
+    return null;
+  }
+  if (scopeManagedByAccount(url.pathname)) return null;
+  const requested = url.searchParams.get("dt_workspace") ?? "";
+  if (!requested) return null;
+  try {
+    if (!(await reconcileWorkspaceId(requested))) return null;
+    return await fetch(generalScopedUrl(href), { credentials: "include", ...init });
+  } catch {
+    return null;
+  }
+}
+
 export async function apiFetch(
   input: RequestInfo | URL,
   init?: RequestInit & { skipAuthRedirect?: boolean },
@@ -33,7 +82,14 @@ export async function apiFetch(
   const scopedInput = typeof input === "string" ? scopedUrl(input)
     : input instanceof URL ? new URL(scopedUrl(input.toString()))
     : new Request(scopedUrl(input.url), input);
-  const response = await fetch(scopedInput, { credentials: "include", ...fetchInit });
+  let response = await fetch(scopedInput, { credentials: "include", ...fetchInit });
+  if (response.status === 404) {
+    const method = (
+      fetchInit.method ?? (input instanceof Request ? input.method : "GET")
+    ).toUpperCase();
+    const retried = await retryStaleWorkspaceInGeneral(scopedInput, fetchInit, method);
+    if (retried) response = retried;
+  }
 
   if (
     response.status === 401 &&
