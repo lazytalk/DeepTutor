@@ -2,24 +2,34 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { School, Users, UserPlus, Trash2, FolderOpen } from "lucide-react";
+import { BookOpen, FolderOpen, Plus, School, Trash2, UserPlus, Users } from "lucide-react";
 import { useAuthStatus } from "@/hooks/useAuthStatus";
 import { selectWorkspace } from "@/lib/workspace-scope";
 import {
   createClass,
   createStudent,
   inviteMember,
+  listClassBooks,
   listClasses,
+  listClassWorkspaces,
   listMembers,
   myAssignments,
   myClasses,
+  referenceWorkspace,
   removeMember,
+  setBookAccess,
   studentPool,
+  teacherOwnedWorkspaces,
+  unreferenceWorkspace,
   updateClass,
   type Assignment,
+  type BookAccess,
+  type ClassBook,
   type ClassMember,
   type ClassSummary,
+  type ClassWorkspace,
   type PoolStudent,
+  type TeacherWorkspaceOption,
 } from "../api";
 import { AssignmentBoard } from "./AssignmentBoard";
 import { ProgressDashboard } from "./ProgressDashboard";
@@ -47,6 +57,11 @@ export default function ClassroomConsole() {
   const [notice, setNotice] = useState("");
   const [viewerStudent, setViewerStudent] = useState("");
   const [myAssign, setMyAssign] = useState<Assignment[]>([]);
+  const [classWorkspaces, setClassWorkspaces] = useState<ClassWorkspace[]>([]);
+  const [workspaceOptions, setWorkspaceOptions] = useState<TeacherWorkspaceOption[]>([]);
+  const [addWorkspaceId, setAddWorkspaceId] = useState("");
+  const [books, setBooks] = useState<ClassBook[]>([]);
+  const [bookDefault, setBookDefault] = useState<BookAccess>("read");
 
   const reload = useCallback(async () => {
     setError("");
@@ -63,15 +78,96 @@ export default function ClassroomConsole() {
     void reload();
   }, [reload]);
 
+  const loadClassRefs = useCallback(async (classId: string) => {
+    const [workspaces, catalog, own] = await Promise.all([
+      listClassWorkspaces(classId),
+      listClassBooks(classId),
+      teacherOwnedWorkspaces(),
+    ]);
+    setClassWorkspaces(workspaces);
+    setBooks(catalog.books);
+    setBookDefault(catalog.default);
+    setWorkspaceOptions(own);
+  }, []);
+
   const openMembers = useCallback(async (item: ClassSummary) => {
     setSelected(item);
     setNotice("");
+    setAddWorkspaceId("");
     try {
-      setMembers(await listMembers(item.id));
+      const [nextMembers] = await Promise.all([listMembers(item.id), loadClassRefs(item.id)]);
+      setMembers(nextMembers);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
-  }, []);
+  }, [loadClassRefs]);
+
+  async function addWorkspaceReference() {
+    if (!selected || !addWorkspaceId) return;
+    setError("");
+    setNotice("");
+    try {
+      await referenceWorkspace(selected.id, addWorkspaceId);
+      setAddWorkspaceId("");
+      setNotice(t("Workspace referenced."));
+      await loadClassRefs(selected.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function removeWorkspaceReference(workspaceId: string) {
+    if (!selected) return;
+    setError("");
+    setNotice("");
+    try {
+      await unreferenceWorkspace(selected.id, workspaceId);
+      setNotice(t("Workspace removed."));
+      await loadClassRefs(selected.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function updateBookDefault(access: BookAccess) {
+    if (!selected) return;
+    const previous = bookDefault;
+    setBookDefault(access);
+    setError("");
+    try {
+      await setBookAccess(selected.id, { default: access });
+      setNotice(t("Book access updated."));
+      const catalog = await listClassBooks(selected.id);
+      setBooks(catalog.books);
+      setBookDefault(catalog.default);
+    } catch (err) {
+      setBookDefault(previous);
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function updateBookAccess(bookId: string, access: BookAccess) {
+    if (!selected) return;
+    setError("");
+    try {
+      await setBookAccess(selected.id, { books: { [bookId]: access } });
+      setBooks((prev) => prev.map((book) => (book.book_id === bookId ? { ...book, access } : book)));
+      setNotice(t("Book access updated."));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  const referencedWorkspaceIds = new Set(classWorkspaces.map((workspace) => workspace.workspace_id));
+  const availableWorkspaces = workspaceOptions.filter(
+    (workspace) => !referencedWorkspaceIds.has(workspace.workspace_id),
+  );
+  const bookGroups = classWorkspaces
+    .map((workspace) => ({
+      workspace,
+      books: books.filter((book) => book.workspace_id === workspace.workspace_id),
+    }))
+    .filter((group) => group.books.length > 0);
 
   async function run(action: () => Promise<unknown>, message: string) {
     setError("");
@@ -254,10 +350,126 @@ export default function ClassroomConsole() {
       )}
 
       {isTeacher && selected && (
+        <section className={panel}>
+          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+            <FolderOpen size={15} /> {t("Class workspaces")}
+          </h2>
+          <p className="mb-2 text-xs text-[var(--muted-foreground)]">
+            {t("Members browse all referenced workspaces read-only.")}
+          </p>
+          <ul className="flex flex-col gap-1">
+            {classWorkspaces.map((workspace) => (
+              <li key={workspace.workspace_id} className="flex items-center gap-2 text-sm">
+                <span>{workspace.display_name}</span>
+                {workspace.primary && (
+                  <span className="rounded-full border border-[var(--border)] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--muted-foreground)]">
+                    {t("Primary")}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  aria-label={t("Remove workspace")}
+                  className="ml-auto text-[var(--muted-foreground)] hover:text-[var(--destructive)] disabled:opacity-30"
+                  disabled={workspace.primary}
+                  onClick={() => void removeWorkspaceReference(workspace.workspace_id)}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <select
+              className={input}
+              value={addWorkspaceId}
+              aria-label={t("Add workspace")}
+              onChange={(event) => setAddWorkspaceId(event.target.value)}
+            >
+              <option value="">{t("Add a workspace")}</option>
+              {availableWorkspaces.map((workspace) => (
+                <option key={workspace.workspace_id} value={workspace.workspace_id}>
+                  {workspace.display_name}
+                </option>
+              ))}
+            </select>
+            <button
+              className={button}
+              type="button"
+              disabled={!addWorkspaceId}
+              onClick={() => void addWorkspaceReference()}
+            >
+              <Plus size={14} className="mr-1 inline" />
+              {t("Add workspace")}
+            </button>
+          </div>
+          {availableWorkspaces.length === 0 && (
+            <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+              {t("No additional workspaces available.")}
+            </p>
+          )}
+        </section>
+      )}
+
+      {isTeacher && selected && (
+        <section className={panel}>
+          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+            <BookOpen size={15} /> {t("Book access")}
+          </h2>
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-xs text-[var(--muted-foreground)]">{t("Default access")}</span>
+            <select
+              className={input}
+              value={bookDefault}
+              aria-label={t("Default access")}
+              onChange={(event) => void updateBookDefault(event.target.value as BookAccess)}
+            >
+              <option value="read">{t("Readable")}</option>
+              <option value="hidden">{t("Hidden")}</option>
+            </select>
+          </div>
+          {bookGroups.length === 0 && (
+            <p className="text-sm text-[var(--muted-foreground)]">
+              {t("No books in the class workspaces.")}
+            </p>
+          )}
+          <div className="flex flex-col gap-3">
+            {bookGroups.map((group) => (
+              <div key={group.workspace.workspace_id}>
+                <h3 className="mb-1 text-xs font-medium text-[var(--muted-foreground)]">
+                  {group.workspace.display_name}
+                  {group.workspace.primary ? ` · ${t("Primary")}` : ""}
+                </h3>
+                <ul className="flex flex-col gap-1">
+                  {group.books.map((book) => (
+                    <li key={`${group.workspace.workspace_id}:${book.book_id}`} className="flex items-center gap-2 text-sm">
+                      <span className="truncate">{book.title}</span>
+                      <select
+                        className={`${input} ml-auto`}
+                        value={book.access}
+                        aria-label={`${book.title} · ${t("Access")}`}
+                        onChange={(event) => void updateBookAccess(book.book_id, event.target.value as BookAccess)}
+                      >
+                        <option value="read">{t("Readable")}</option>
+                        <option value="hidden">{t("Hidden")}</option>
+                      </select>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-[var(--muted-foreground)]">
+            {t("Assigning a topic sourced from a book auto-grants read access to assigned students unless explicitly hidden.")}
+          </p>
+        </section>
+      )}
+
+      {isTeacher && selected && (
         <>
           <AssignmentBoard
+            key={selected.id}
             classId={selected.id}
-            workspaceId={selected.workspace_id}
+            workspaces={classWorkspaces}
             members={members}
           />
           <ProgressDashboard classId={selected.id} />

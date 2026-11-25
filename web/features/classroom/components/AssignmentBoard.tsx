@@ -2,34 +2,39 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { apiFetch } from "@/shared/api/client";
-import { assign, classAssignments, revokeAssignment, type Assignment, type ClassMember } from "../api";
+import {
+  assign,
+  classAssignments,
+  listAssignmentSources,
+  revokeAssignment,
+  type Assignment,
+  type AssignmentSource,
+  type ClassMember,
+  type ClassWorkspace,
+} from "../api";
 
 const input =
   "rounded-lg border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-sm text-[var(--foreground)]";
 const button =
   "rounded-lg bg-[var(--foreground)] px-3 py-1.5 text-sm text-[var(--background)] disabled:opacity-40";
 
-interface SourceOption {
-  id: string;
-  label: string;
-}
+const sourceKey = (source: AssignmentSource) => JSON.stringify([source.workspace_id, source.id]);
 
 /** Teacher: assign class topics/question sets to members (assign-by-copy). */
 export function AssignmentBoard({
   classId,
-  workspaceId,
+  workspaces,
   members,
 }: {
   classId: string;
-  workspaceId: string;
+  workspaces: ClassWorkspace[];
   members: ClassMember[];
 }) {
   const { t } = useTranslation();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [kind, setKind] = useState<"mastery_topic" | "question_set">("mastery_topic");
-  const [sources, setSources] = useState<SourceOption[]>([]);
-  const [sourceId, setSourceId] = useState("");
+  const [sources, setSources] = useState<AssignmentSource[]>([]);
+  const [selectedKey, setSelectedKey] = useState("");
   const [targets, setTargets] = useState<string[]>([]);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -49,36 +54,34 @@ export function AssignmentBoard({
 
   useEffect(() => {
     let alive = true;
-    setSourceId("");
-    const url =
-      kind === "mastery_topic"
-        ? `/api/mastery-paths/topics?dt_workspace=${workspaceId}`
-        : `/api/question-notebook/categories?dt_workspace=${workspaceId}`;
-    void apiFetch(url)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!alive || !d) return;
-        const rows = d.topics ?? d.categories ?? d.items ?? [];
-        setSources(
-          (Array.isArray(rows) ? rows : []).map((row: Record<string, unknown>) => ({
-            id: String(row.path_id ?? row.id ?? ""),
-            label: String(row.name ?? (row.metadata as Record<string, unknown>)?.goal ?? row.id ?? ""),
-          })),
-        );
+    listAssignmentSources(classId)
+      .then((rows) => {
+        if (alive) setSources(rows);
       })
-      .catch(() => setSources([]));
+      .catch((err) => {
+        if (!alive) return;
+        setSources([]);
+        setError(err instanceof Error ? err.message : String(err));
+      });
     return () => {
       alive = false;
     };
-  }, [kind, workspaceId]);
+  }, [classId]);
+
+  const visibleSources = sources.filter((source) => source.kind === kind);
+  const workspaceLabel = (workspaceId: string) =>
+    workspaces.find((workspace) => workspace.workspace_id === workspaceId)?.display_name ?? workspaceId;
 
   async function runAssign() {
     setError("");
     setNotice("");
+    const source = visibleSources.find((item) => sourceKey(item) === selectedKey);
+    if (!source) return;
     try {
       const result = await assign(classId, {
         kind,
-        source_id: sourceId,
+        source_id: source.id,
+        source_workspace_id: source.workspace_id,
         student_ids: targets,
       });
       const failed = result.results.filter((r) => !r.ok);
@@ -97,19 +100,31 @@ export function AssignmentBoard({
     <section className="rounded-xl border border-[var(--border)] bg-[var(--secondary)] p-4">
       <h2 className="mb-2 text-sm font-medium">{t("Assignments")}</h2>
       <div className="flex flex-wrap items-center gap-2">
-        <select className={input} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
+        <select
+          className={input}
+          value={kind}
+          onChange={(e) => {
+            setKind(e.target.value as typeof kind);
+            setSelectedKey("");
+          }}
+        >
           <option value="mastery_topic">{t("Guided Learning topic")}</option>
           <option value="question_set">{t("Practice question set")}</option>
         </select>
-        <select className={input} value={sourceId} onChange={(e) => setSourceId(e.target.value)}>
-          <option value="">{t("Source in class workspace")}</option>
-          {sources.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.label}
+        <select
+          className={input}
+          value={selectedKey}
+          aria-label={t("Source")}
+          onChange={(e) => setSelectedKey(e.target.value)}
+        >
+          <option value="">{t("Select a source")}</option>
+          {visibleSources.map((source) => (
+            <option key={sourceKey(source)} value={sourceKey(source)}>
+              {source.name || source.id} · {workspaceLabel(source.workspace_id)}
             </option>
           ))}
         </select>
-        <button className={button} disabled={!sourceId || targets.length === 0} onClick={() => void runAssign()}>
+        <button className={button} disabled={!selectedKey || targets.length === 0} onClick={() => void runAssign()}>
           {t("Assign to selected")}
         </button>
       </div>

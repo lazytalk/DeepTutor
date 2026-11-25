@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { subscribeToThemeChanges } from "@/lib/theme";
+import { sanitizeMindmapLabels } from "@/lib/mermaid-sanitize";
 
 interface MermaidProps {
   chart: string;
@@ -117,7 +118,7 @@ export const Mermaid: React.FC<MermaidProps> = ({ chart, className = "" }) => {
         const mermaid = await loadMermaid();
         applyMermaidTheme(mermaid);
         cleanupMermaidOrphans(id);
-        const { svg: renderedSvg } = await mermaid.render(id, chart.trim());
+        const { svg: renderedSvg } = await mermaid.render(id, sanitizeMindmapLabels(chart.trim()));
         if (!cancelled) {
           setSvg(renderedSvg);
           setError(null);

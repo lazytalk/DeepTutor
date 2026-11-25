@@ -68,6 +68,11 @@ def create_class(teacher_id: str, name: str, workspace_id: str) -> dict[str, Any
             "name": name,
             "teacher_id": teacher_id,
             "workspace_id": workspace_id,
+            # 1:N — the auto-created workspace stays primary; additional
+            # teacher-owned workspaces can be referenced for browse/assign.
+            "workspace_ids": [workspace_id],
+            # Per-book read gate for class members browsing class workspaces.
+            "book_policy": {"default": "read", "books": {}},
             "members": [],
             "created_at": _utc_now(),
             "archived_at": None,
@@ -85,13 +90,121 @@ def class_by_id(class_id: str) -> dict[str, Any] | None:
     return None
 
 
+def class_workspaces(record: dict[str, Any]) -> list[str]:
+    return list(record.get("workspace_ids") or [record["workspace_id"]])
+
+
 def class_for_workspace(workspace_id: str) -> dict[str, Any] | None:
     if not workspace_id:
         return None
     for record in _load_records():
-        if record["workspace_id"] == workspace_id:
+        if workspace_id in class_workspaces(record):
             return deepcopy(record)
     return None
+
+
+def add_reference_workspace(class_id: str, workspace_id: str, actor_id: str) -> dict[str, Any]:
+    """Reference an additional teacher-owned workspace in the class."""
+    from deeptutor.services.workspace import get_content_workspace_service
+    from deeptutor.services.workspace.models import WorkspaceError
+
+    with _WRITE_LOCK:
+        records = _load_records()
+        record = next((r for r in records if r["id"] == class_id), None)
+        if record is None:
+            raise ValueError("Unknown class.")
+        if record["teacher_id"] != actor_id:
+            raise ValueError("Only the class teacher can reference workspaces.")
+        ids = class_workspaces(record)
+        if workspace_id in ids:
+            raise ValueError("This workspace is already part of the class.")
+        with teacher_account_context(record):
+            service = get_content_workspace_service()
+            try:
+                service.binding_by_id(workspace_id)
+            except WorkspaceError as exc:
+                raise ValueError("Only the teacher's own workspaces can be referenced.") from exc
+            row = next(
+                (r for r in service._catalog() if r["workspace_id"] == workspace_id), None
+            )
+            if row is None or row["kind"] != "workspace":
+                raise ValueError("Only content workspaces can be referenced.")
+        record["workspace_ids"] = ids + [workspace_id]
+        _write_records(records)
+    log_admin_action("classroom.reference_workspace", summary={"class_id": class_id, "workspace_id": workspace_id})
+    return deepcopy(record)
+
+
+def remove_reference_workspace(class_id: str, workspace_id: str, actor_id: str) -> dict[str, Any]:
+    with _WRITE_LOCK:
+        records = _load_records()
+        record = next((r for r in records if r["id"] == class_id), None)
+        if record is None:
+            raise ValueError("Unknown class.")
+        if record["teacher_id"] != actor_id:
+            raise ValueError("Only the class teacher can manage referenced workspaces.")
+        if workspace_id == record["workspace_id"]:
+            raise ValueError("The primary class workspace cannot be removed.")
+        ids = class_workspaces(record)
+        if workspace_id not in ids:
+            raise ValueError("This workspace is not part of the class.")
+        record["workspace_ids"] = [w for w in ids if w != workspace_id]
+        _write_records(records)
+    log_admin_action("classroom.unreference_workspace", summary={"class_id": class_id, "workspace_id": workspace_id})
+    return deepcopy(record)
+
+
+def set_book_policy(
+    class_id: str,
+    actor_id: str,
+    *,
+    default: str | None = None,
+    books: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    with _WRITE_LOCK:
+        records = _load_records()
+        record = next((r for r in records if r["id"] == class_id), None)
+        if record is None:
+            raise ValueError("Unknown class.")
+        if record["teacher_id"] != actor_id:
+            raise ValueError("Only the class teacher can set book access.")
+        policy = dict(record.get("book_policy") or {"default": "read", "books": {}})
+        if default is not None:
+            if default not in ("read", "hidden"):
+                raise ValueError("Book policy default must be 'read' or 'hidden'.")
+            policy["default"] = default
+        if books is not None:
+            merged = dict(policy.get("books") or {})
+            for book_id, access in books.items():
+                if access not in ("read", "hidden"):
+                    raise ValueError("Book access must be 'read' or 'hidden'.")
+                merged[book_id] = access
+            policy["books"] = merged
+        record["book_policy"] = policy
+        _write_records(records)
+    log_admin_action("classroom.book_policy", summary={"class_id": class_id})
+    return deepcopy(record)
+
+
+def book_visible_for_member(
+    record: dict[str, Any], book_id: str, student_id: str | None = None
+) -> bool:
+    """Precedence: explicit teacher override, then assignment auto-grant, then default.
+
+    Assigning a topic sourced from a book grants the assigned student read-only
+    access to that book; members never gain write access anywhere.
+    """
+    policy = record.get("book_policy") or {"default": "read", "books": {}}
+    override = (policy.get("books") or {}).get(book_id)
+    if override is not None:
+        return override == "read"
+    if student_id is not None:
+        for assignment in list_assignments(
+            teacher_id=record["teacher_id"], student_id=student_id
+        ):
+            if book_id in (assignment.get("source_book_ids") or []):
+                return True
+    return policy.get("default", "read") == "read"
 
 
 def list_classes(
@@ -232,6 +345,7 @@ def create_assignment(
     source_id: str,
     target_workspace_id: str,
     target_id: str,
+    source_book_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     with _WRITE_LOCK:
         records = _load_assignments()
@@ -244,6 +358,8 @@ def create_assignment(
             "source_id": source_id,
             "target_workspace_id": target_workspace_id,
             "target_id": target_id,
+            # Books the source topic draws on; assigning grants read-only access.
+            "source_book_ids": list(source_book_ids or []),
             "created_at": _utc_now(),
             "created_by": teacher_id,
             "revoked_at": None,
@@ -361,35 +477,36 @@ def shared_workspace_rows() -> list[dict[str, Any]]:
     user = get_current_user()
     rows: list[dict[str, Any]] = []
     for record in member_classes(user.id):
-        try:
-            with teacher_account_context(record):
-                from deeptutor.services.workspace import get_content_workspace_service
+        for ws_id in class_workspaces(record):
+            try:
+                with teacher_account_context(record):
+                    from deeptutor.services.workspace import get_content_workspace_service
 
-                service = get_content_workspace_service()
-                binding = service.binding_by_id(record["workspace_id"])
-                status = service.validate(str(binding.root))
-                owner_username = get_current_user().username
-            rows.append(
-                {
-                    "workspace_id": record["workspace_id"],
-                    "display_name": record["name"],
-                    "path": "",
-                    "kind": "workspace",
-                    "follows_root": False,
-                    "archived": False,
-                    "created_at": record["created_at"],
-                    "status": status["status"],
-                    "error": status.get("error", ""),
-                    "instructions": "",
-                    "resources": {"skills": None, "mcp": None, "knowledge_bases": None},
-                    "shared": True,
-                    "read_only": True,
-                    "class_id": record["id"],
-                    "owner_username": owner_username,
-                }
-            )
-        except (WorkspaceError, ValueError):
-            continue
+                    service = get_content_workspace_service()
+                    binding = service.binding_by_id(ws_id)
+                    status = service.validate(str(binding.root))
+                    owner_username = get_current_user().username
+                rows.append(
+                    {
+                        "workspace_id": ws_id,
+                        "display_name": record["name"],
+                        "path": "",
+                        "kind": "workspace",
+                        "follows_root": False,
+                        "archived": False,
+                        "created_at": record["created_at"],
+                        "status": status["status"],
+                        "error": status.get("error", ""),
+                        "instructions": "",
+                        "resources": {"skills": None, "mcp": None, "knowledge_bases": None},
+                        "shared": True,
+                        "read_only": True,
+                        "class_id": record["id"],
+                        "owner_username": owner_username,
+                    }
+                )
+            except (WorkspaceError, ValueError):
+                continue
     return rows
 
 

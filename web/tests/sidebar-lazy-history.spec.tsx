@@ -16,7 +16,7 @@ vi.mock("@/hooks/useAuthStatus", () => ({
   }),
 }));
 
-vi.mock("@/hooks/useChatWorkspaces", () => ({ useChatWorkspaces: () => ({ workspaces: [], error: "" }) }));
+vi.mock("@/hooks/useChatWorkspaces", () => ({ useChatWorkspaces: () => ({ workspaces: [], all: [], error: "" }) }));
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),

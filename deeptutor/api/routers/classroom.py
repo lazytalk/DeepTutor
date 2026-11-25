@@ -256,6 +256,16 @@ class AssignRequest(BaseModel):
     source_id: str
     student_ids: list[str] | None = None
     target_workspace_id: str = ""
+    source_workspace_id: str = ""
+
+
+class ReferenceWorkspaceRequest(BaseModel):
+    workspace_id: str
+
+
+class BookAccessRequest(BaseModel):
+    default: str | None = None
+    books: dict[str, str] | None = None
 
 
 class RenameTopicRequest(BaseModel):
@@ -290,17 +300,40 @@ async def create_assignments(
     unknown = [uid for uid in targets if uid not in members]
     if unknown:
         raise HTTPException(status_code=400, detail="Every target must be a class member.")
+    source_workspace = body.source_workspace_id or record["workspace_id"]
+    if source_workspace not in classroom.class_workspaces(record):
+        raise HTTPException(status_code=400, detail="Source workspace is not part of this class.")
+    source_book_ids: list[str] = []
+    if body.kind == "mastery_topic":
+        from deeptutor.learning.storage import LearningStore
+
+        with classroom.teacher_account_context(record):
+            with workspace_context(source_workspace):
+                source_topic = LearningStore().get_topic(body.source_id)
+                source_book_ids = [
+                    s.source_id
+                    for s in (source_topic.sources if source_topic else [])
+                    if getattr(s.kind, "value", str(s.kind)) == "book" and s.source_id
+                ]
     results = []
     for student_id in targets:
         try:
             if body.kind == "mastery_topic":
                 target_id = await delivery.copy_mastery_topic(
-                    record, body.source_id, student_id, body.target_workspace_id
+                    record,
+                    body.source_id,
+                    student_id,
+                    body.target_workspace_id,
+                    source_workspace,
                 )
             else:
                 target_id = str(
                     await delivery.copy_question_set(
-                        record, int(body.source_id), student_id, body.target_workspace_id
+                        record,
+                        int(body.source_id),
+                        student_id,
+                        body.target_workspace_id,
+                        source_workspace,
                     )
                 )
         except (ValueError, TypeError) as exc:
@@ -314,6 +347,7 @@ async def create_assignments(
             body.source_id,
             body.target_workspace_id,
             target_id,
+            source_book_ids,
         )
         results.append({"student_id": student_id, "ok": True, "assignment_id": assignment["id"]})
     return {"results": results}
@@ -596,3 +630,132 @@ async def class_progress(class_id: str, _: object = Depends(require_teacher)) ->
             }
         )
     return {"rows": rows}
+
+
+@router.get("/classes/{class_id}/workspaces")
+async def list_class_workspaces(class_id: str, _: object = Depends(require_auth)) -> dict:
+    _require_mode()
+    from deeptutor.services.workspace import get_content_workspace_service
+
+    record = _class_or_404(class_id)
+    user = get_current_user()
+    if not (classroom.is_class_teacher(user.id, class_id) or classroom.is_member(class_id, user.id)):
+        raise HTTPException(status_code=403, detail="Not a member of this class.")
+    out = []
+    with classroom.teacher_account_context(record):
+        service = get_content_workspace_service()
+        for ws_id in classroom.class_workspaces(record):
+            try:
+                binding = service.binding_by_id(ws_id)
+            except Exception:
+                continue
+            out.append(
+                {
+                    "workspace_id": ws_id,
+                    "display_name": binding.display_name,
+                    "primary": ws_id == record["workspace_id"],
+                }
+            )
+    return {"workspaces": out}
+
+
+@router.post("/classes/{class_id}/workspaces", status_code=status.HTTP_201_CREATED)
+async def reference_workspace(
+    class_id: str,
+    body: ReferenceWorkspaceRequest,
+    _: object = Depends(require_teacher),
+) -> dict:
+    _require_mode()
+    _require_owner(class_id)
+    try:
+        record = classroom.add_reference_workspace(class_id, body.workspace_id, get_current_user().id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"class": _public_class(record), "workspace_ids": classroom.class_workspaces(record)}
+
+
+@router.delete("/classes/{class_id}/workspaces/{workspace_id}")
+async def unreference_workspace(
+    class_id: str, workspace_id: str, _: object = Depends(require_teacher)
+) -> dict:
+    _require_mode()
+    _require_owner(class_id)
+    try:
+        record = classroom.remove_reference_workspace(class_id, workspace_id, get_current_user().id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"class": _public_class(record), "workspace_ids": classroom.class_workspaces(record)}
+
+
+@router.get("/classes/{class_id}/books")
+async def list_class_books(class_id: str, _: object = Depends(require_teacher)) -> dict:
+    _require_mode()
+    from deeptutor.api.routers.book import accessible_books
+
+    record = _require_owner(class_id)
+    policy = record.get("book_policy") or {"default": "read", "books": {}}
+    out = []
+    with classroom.teacher_account_context(record):
+        for ws_id in classroom.class_workspaces(record):
+            with workspace_context(ws_id):
+                for book, _resolved in accessible_books():
+                    out.append(
+                        {
+                            "book_id": book.id,
+                            "title": getattr(book, "title", "") or book.id,
+                            "workspace_id": ws_id,
+                            "access": (policy.get("books") or {}).get(book.id, policy.get("default", "read")),
+                        }
+                    )
+    return {"books": out, "default": policy.get("default", "read")}
+
+
+@router.put("/classes/{class_id}/book-access")
+async def set_book_access(
+    class_id: str,
+    body: BookAccessRequest,
+    _: object = Depends(require_teacher),
+) -> dict:
+    _require_mode()
+    _require_owner(class_id)
+    try:
+        record = classroom.set_book_policy(
+            class_id, get_current_user().id, default=body.default, books=body.books
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"book_policy": record["book_policy"]}
+
+
+@router.get("/classes/{class_id}/assignment-sources")
+async def list_assignment_sources(class_id: str, _: object = Depends(require_teacher)) -> dict:
+    _require_mode()
+    from deeptutor.learning.storage import LearningStore
+    from deeptutor.services.session.sqlite_store import get_sqlite_session_store
+
+    record = _require_owner(class_id)
+    sources = []
+    with classroom.teacher_account_context(record):
+        for ws_id in classroom.class_workspaces(record):
+            with workspace_context(ws_id):
+                for progress, topic, _sessions, _interaction in LearningStore().list_topic_snapshots(
+                    status="active"
+                ):
+                    sources.append(
+                        {
+                            "kind": "mastery_topic",
+                            "id": progress.book_id,
+                            "name": progress.name or (topic.metadata.goal if topic else progress.book_id),
+                            "workspace_id": ws_id,
+                        }
+                    )
+                for category in await get_sqlite_session_store().list_categories():
+                    sources.append(
+                        {
+                            "kind": "question_set",
+                            "id": str(category["id"]),
+                            "name": category["name"],
+                            "workspace_id": ws_id,
+                        }
+                    )
+    return {"sources": sources}

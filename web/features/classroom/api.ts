@@ -80,6 +80,77 @@ export const createStudent = (id: string, username: string, password: string) =>
     body: JSON.stringify({ username, password }),
   }).then((r) => json<{ user_id: string; username: string }>(r));
 
+export interface ClassWorkspace {
+  workspace_id: string;
+  display_name: string;
+  primary: boolean;
+}
+
+export const listClassWorkspaces = (id: string) =>
+  apiFetch(`/api/classroom/classes/${id}/workspaces`)
+    .then((r) => json<{ workspaces: ClassWorkspace[] }>(r))
+    .then((d) => d.workspaces);
+
+export const referenceWorkspace = (id: string, workspaceId: string) =>
+  apiFetch(`/api/classroom/classes/${id}/workspaces`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ workspace_id: workspaceId }),
+  }).then((r) => json<{ class: ClassSummary; workspace_ids: string[] }>(r));
+
+export const unreferenceWorkspace = (id: string, workspaceId: string) =>
+  apiFetch(`/api/classroom/classes/${id}/workspaces/${encodeURIComponent(workspaceId)}`, {
+    method: "DELETE",
+  }).then((r) => json<{ class: ClassSummary; workspace_ids: string[] }>(r));
+
+export type BookAccess = "read" | "hidden";
+
+export interface ClassBook {
+  book_id: string;
+  title: string;
+  workspace_id: string;
+  access: BookAccess;
+}
+
+export interface TeacherWorkspaceOption {
+  workspace_id: string;
+  display_name: string;
+}
+
+/** Teacher-owned workspaces offered for additional class references. */
+export const teacherOwnedWorkspaces = () =>
+  apiFetch("/api/settings/workspace/registrations")
+    .then((r) => json<{ workspaces: { workspace_id: string; display_name: string; kind: string; archived?: boolean; shared?: boolean }[] }>(r))
+    .then((d) =>
+      d.workspaces
+        .filter((w) => w.kind === "workspace" && !w.archived && !w.shared)
+        .map((w) => ({ workspace_id: w.workspace_id, display_name: w.display_name })),
+    );
+
+export const listClassBooks = (id: string) =>
+  apiFetch(`/api/classroom/classes/${id}/books`).then((r) =>
+    json<{ books: ClassBook[]; default: BookAccess }>(r),
+  );
+
+export const setBookAccess = (id: string, patch: { default?: BookAccess; books?: Record<string, BookAccess> }) =>
+  apiFetch(`/api/classroom/classes/${id}/book-access`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  }).then((r) => json<{ book_policy: { default: BookAccess; books: Record<string, BookAccess> } }>(r));
+
+export interface AssignmentSource {
+  kind: "mastery_topic" | "question_set";
+  id: string;
+  name: string;
+  workspace_id: string;
+}
+
+export const listAssignmentSources = (id: string) =>
+  apiFetch(`/api/classroom/classes/${id}/assignment-sources`)
+    .then((r) => json<{ sources: AssignmentSource[] }>(r))
+    .then((d) => d.sources);
+
 export interface Assignment {
   id: string;
   class_id: string;
@@ -96,7 +167,10 @@ export interface Assignment {
 export const classAssignments = (id: string) =>
   apiFetch(`/api/classroom/classes/${id}/assignments`).then((r) => json<{ assignments: Assignment[] }>(r)).then((d) => d.assignments);
 
-export const assign = (id: string, body: { kind: string; source_id: string; student_ids?: string[] }) =>
+export const assign = (
+  id: string,
+  body: { kind: string; source_id: string; source_workspace_id?: string; student_ids?: string[] },
+) =>
   apiFetch(`/api/classroom/classes/${id}/assignments`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

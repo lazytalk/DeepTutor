@@ -62,7 +62,7 @@ vi.mock("@/hooks/useDevice", () => ({
   useDevice: () => ({ isMobile: false }),
 }));
 vi.mock("@/hooks/useChatWorkspaces", () => ({
-  useChatWorkspaces: () => ({ workspaces: [], error: "" }),
+  useChatWorkspaces: () => ({ workspaces: [], all: [], error: "" }),
 }));
 vi.mock("@/lib/app-update", () => ({
   fetchAppUpdateStatus: vi.fn(() => Promise.resolve({ current_version: "1.0" })),

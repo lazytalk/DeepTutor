@@ -613,11 +613,37 @@ async def block_types() -> dict[str, list[dict[str, str | bool]]]:
     }
 
 
+
+def _class_member_book_gate(book_id: str, *, skip: bool = False) -> bool:
+    """Class members only see books the class policy/assignments allow.
+
+    Returns True when the book is visible; raises 404 for hidden books unless
+    ``skip`` (list filtering) is set.
+    """
+    from deeptutor.multi_user import classroom
+    from deeptutor.multi_user.context import get_current_user
+    from deeptutor.services.workspace.context import get_workspace_scope
+
+    scope = get_workspace_scope()
+    if scope is None or not scope.class_member:
+        return True
+    record = classroom.class_for_workspace(scope.workspace_id)
+    if record is None:
+        return True
+    if classroom.book_visible_for_member(record, book_id, get_current_user().id):
+        return True
+    if skip:
+        return False
+    raise HTTPException(status_code=404, detail="Book not found")
+
+
 @router.get("/books")
 async def list_books() -> dict[str, Any]:
     def _collect() -> list[dict[str, Any]]:
         books: list[dict[str, Any]] = []
         for book, resolved in accessible_books():
+            if not _class_member_book_gate(book.id, skip=True):
+                continue
             data = _book_payload(book, resolved)
             # Lets the library card say "continue reading" and show how far in
             # the reader is, instead of treating every book as untouched.
@@ -768,6 +794,7 @@ async def get_book(book_id: str, include_blocks: bool = True) -> dict[str, Any]:
     book = engine.load_book(book_id)
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
+    _class_member_book_gate(book_id)
 
     # Opening a book is the correctly-scoped moment to notice that its
     # compilation died with a previous process and pick it back up.
@@ -806,6 +833,7 @@ async def get_spine(book_id: str) -> dict[str, Any]:
 
 @router.get("/books/{book_id}/pages/{page_id}")
 async def get_page(book_id: str, page_id: str) -> dict[str, Any]:
+    _class_member_book_gate(book_id)
     engine = _resolve_book_or_404(book_id).engine
     page = engine.load_page(book_id, page_id)
     if page is None:

@@ -116,13 +116,14 @@ async def copy_mastery_topic(
     source_path_id: str,
     student_id: str,
     target_workspace_id: str = "",
+    source_workspace_id: str = "",
 ) -> str:
     from deeptutor.learning.models import TopicMetadata
     from deeptutor.learning.service import LearningService
     from deeptutor.learning.storage import LearningStore
 
     with classroom.teacher_account_context(record):
-        with workspace_context(record["workspace_id"]):
+        with workspace_context(source_workspace_id or record["workspace_id"]):
             store = LearningStore()
             progress = store.load(source_path_id)
             if progress is None:
@@ -153,11 +154,12 @@ async def copy_question_set(
     category_id: int,
     student_id: str,
     target_workspace_id: str = "",
+    source_workspace_id: str = "",
 ) -> int:
     from deeptutor.services.session.sqlite_store import get_sqlite_session_store
 
     with classroom.teacher_account_context(record):
-        with workspace_context(record["workspace_id"]):
+        with workspace_context(source_workspace_id or record["workspace_id"]):
             store = get_sqlite_session_store()
             categories = await store.list_categories()
             category = next((c for c in categories if c.get("id") == category_id), None)
